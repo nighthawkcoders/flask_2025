@@ -48,6 +48,7 @@ class UserAPI:
                     user_obj = User.query.filter_by(_uid=uid).first()
                     # Process sections if provided
                     if user_obj is not None:
+                        print("Creating:", user_obj.uid)
                         abbreviations = [section["abbreviation"] for section in user.get('sections', [])]
                         if len(abbreviations) > 0:  # Check if the list is not empty
                             section_obj = user_obj.add_sections(abbreviations)
