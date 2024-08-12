@@ -392,3 +392,9 @@ Large box for Jammy:
 set -ex
 echo "kasm-user  ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 ```
+
+# Changing Group notes:
+All Users gid: 68d557ac4cac42cca9f31c7c853de0f3
+CSP gid: c5565ed1637045e6be10fbfd805500af
+CSA gid: 1fe547d577ee46a0ad66a1f427f4c866
+CSSE gid: 44d4286a8d0b414c9a711fdb4c750ec7

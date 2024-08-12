@@ -6,6 +6,7 @@ from __init__ import app
 from api.jwt_authorize import token_required
 from model.user import User
 from model.github import GitHubUser
+from model.kasm import UpdateUser
 
 user_api = Blueprint('user_api', __name__,
                    url_prefix='/api')
@@ -60,6 +61,26 @@ class UserAPI:
                                 
             
             return jsonify(results) 
+        
+    class _kasm(Resource):  # KASM API operation this is test for updating group of user.
+        def post(self):
+            try:
+                ''' Read data for json body '''
+                body = request.get_json()
+                
+                ''' Avoid garbage in, error checking '''
+                # validate name
+                name = body.get('name')
+                new_group = body.get('group')
+                if name is None or len(name) < 2:
+                    return {'message': f'Name is missing, or is less than 2 characters'}, 400
+                if new_group is None:
+                    return {'message': f'Group is missing'}, 400
+                
+                UpdateUser.group_change(name, new_group)
+                return jsonify({'message': f'Processed {name}, group changed to {new_group}'})
+            except Exception as e:
+                return {'message': f'Error: {str(e)}'}, 400
             
     class _CRUD(Resource):  # Users API operation for Create, Read, Update, Delete 
         def post(self): # Create method
@@ -329,6 +350,7 @@ class UserAPI:
     # building RESTapi endpoint
     api.add_resource(_ID, '/id')
     api.add_resource(_BULK, '/users')
+    api.add_resource(_kasm, '/kasm')
     api.add_resource(_CRUD, '/user')
     api.add_resource(_Section, '/user/section') 
     api.add_resource(_Security, '/authenticate')          

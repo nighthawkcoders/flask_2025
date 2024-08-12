@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+
+#
+# WARNING:This script is deprecated.
+#
+
+
 """ db_init.py
 Generates the database schema for all db models
 - Initializes Users, Sections, and UserSections tables.
