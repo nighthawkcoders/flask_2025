@@ -5,6 +5,7 @@ __pycache__/
 
 # Environments
 .env
+.env.*
 .env.swp
 .venv
 env/

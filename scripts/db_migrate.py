@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-""" db_init.py
+""" db_migrate.py
 Generates the database schema for all db models
 - Initializes Users, Sections, and UserSections tables.
 - Imports data from the old database to the new database.
@@ -26,6 +26,9 @@ import shutil
 import sys
 import os
 import requests
+import subprocess
+from sqlalchemy import create_engine, text
+from sqlalchemy.exc import OperationalError
 
 # Add the directory containing main.py to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -33,22 +36,53 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from main import app, db, initUsers
 
 # Locations and credentials 
-AUTH_URL = "https://flask2.nighthawkcodingsociety.com/api/authenticate"
-OLD_DATA_URL = "https://flask2.nighthawkcodingsociety.com/api/user"
+AUTH_URL = "https://flask2025.nighthawkcodingsociety.com/api/authenticate"
+DATA_URL = "https://flask2025.nighthawkcodingsociety.com/api/user"
 UID = app.config['DEFAULT_USER'] 
 PASSWORD = app.config['DEFAULT_PASSWORD']
 
 # Backup the old database
-def backup_database(db_uri, backup_uri):
+def backup_database(db_uri, backup_uri, db_string):
     """Backup the current database."""
-    if backup_uri:
-        db_path = db_uri.replace('sqlite:///', 'instance/')
-        backup_path = backup_uri.replace('sqlite:///', 'instance/')
-        shutil.copyfile(db_path, backup_path)
-        print(f"Database backed up to {backup_path}")
+    if 'mysql' in db_string:
+        # MySQL backup using mysqldump
+        db_name = db_uri.split('/')[-1]
+        backup_file = f"{db_name}_backup.sql"
+        try:
+            subprocess.run([
+                'mysqldump',
+                '-h', app.config["DB_ENDPOINT"],
+                '-u', app.config["DB_USERNAME"],
+                f'-p{app.config["DB_PASSWORD"]}',
+                db_name,
+                '>', backup_file
+            ], check=True, shell=True)
+            print(f"MySQL database backed up to {backup_file}")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to backup MySQL database: {e}")
+    elif 'sqlite' in db_string:
+        # SQLite backup using shutil
+        if backup_uri:
+            db_path = db_uri.replace('sqlite:///', '')
+            backup_path = backup_uri.replace('sqlite:///', '')
+            shutil.copyfile(db_path, backup_path)
+            print(f"SQLite database backed up to {backup_path}")
+        else:
+            print("Backup not supported for production database.")
     else:
-        print("Backup not supported for production database.")
-        
+        print("Unsupported database type for backup.")
+
+# Create the database if it does not exist
+def create_database(engine, db_name):
+    """Create the database if it does not exist."""
+    with engine.connect() as connection:
+        result = connection.execute(text(f"SHOW DATABASES LIKE '{db_name}'"))
+        if not result.fetchone():
+            connection.execute(text(f"CREATE DATABASE {db_name}"))
+            print(f"Database '{db_name}' created successfully.")
+        else:
+            print(f"Database '{db_name}' already exists.")
+
 # Old data access        
 def authenticate(uid, password):
     '''Authenticate and return the token'''
@@ -68,14 +102,14 @@ def authenticate(uid, password):
         return None, {'message': 'Failed to authenticate', 'code': response.status_code, 'error': str(e)}
 
 # Old data JSON extraction
-def extract_old_data(cookies):
-    '''Extract old data using the authentication cookies'''
+def extract_data(cookies):
+    '''Extract data using the authentication cookies'''
     headers = {
         "Content-Type": "application/json",
         "X-Origin": "client"
     }
     try:
-        response = requests.get(OLD_DATA_URL, headers=headers, cookies=cookies)
+        response = requests.get(DATA_URL, headers=headers, cookies=cookies)
         response.raise_for_status()  # Raise an exception for HTTP errors
         return response.json(), None
     except requests.RequestException as e:
@@ -101,8 +135,22 @@ def main():
                     sys.exit(0)
                     
             # Backup the old database
-            backup_database(app.config['SQLALCHEMY_DATABASE_URI'], app.config['SQLALCHEMY_BACKUP_URI'])
-            
+            backup_database(app.config['SQLALCHEMY_DATABASE_URI'], app.config['SQLALCHEMY_BACKUP_URI'], app.config['SQLALCHEMY_DATABASE_STRING'])  
+                 
+        except OperationalError as e:
+            if "Unknown database" in str(e):
+                # Create the database if it does not exist
+                engine = create_engine(app.config['SQLALCHEMY_DATABASE_STRING'])
+                create_database(engine, app.config['SQLALCHEMY_DATABASE_NAME'])
+                # Retry the operation
+                with app.app_context():
+                    db.create_all()
+                    print("All tables created after database creation.")
+                    
+            else:
+                print(f"An error occurred: {e}")
+                sys.exit(1) 
+                
         except Exception as e:
             print(f"An error occurred: {e}")
             sys.exit(1)
@@ -114,7 +162,7 @@ def main():
         sys.exit(1)
     
     # Step 2: Extract Old data 
-    old_data, error = extract_old_data(cookies)
+    old_data, error = extract_data(cookies)
     if error:
         print(error)
         sys.exit(1)
@@ -122,8 +170,8 @@ def main():
     print("Old data extracted successfully.")
     
     # Step 3: Build New schema and load data 
-    with app.app_context():
-        try:
+    try:
+        with app.app_context():
             # Drop all the tables defined in the project
             db.drop_all()
             print("All tables dropped.")
@@ -144,9 +192,10 @@ def main():
                     print(f"Failed to load data into the new database. Status code: {post_response.status_code}")
                     sys.exit(1)
             
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            sys.exit(1)
+    
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        sys.exit(1)
     
     # Log success 
     print("Database initialized!")

@@ -245,7 +245,7 @@ class KasmUser:
         # Get KASM keys
         config, error = KasmUtils.get_config()
         if error:
-            print(error)
+            # print(error)
             return
 
         # Check if KASM keys can authenticate, the "_" means data is not used
@@ -295,7 +295,7 @@ class KasmUser:
         # Get KASM keys
         config, error = KasmUtils.get_config()
         if error:
-            print(error)
+            # print(error)
             return
 
         # Check if KASM keys can authenticate, the "_" means data is not used
