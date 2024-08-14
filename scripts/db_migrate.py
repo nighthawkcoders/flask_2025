@@ -2,7 +2,7 @@
 
 """ db_migrate.py
 Generates the database schema for all db models
-- Initializes Users, Sections, and UserSections tables.
+- Initializes Users, Sections, UserSections, and other defined tables.
 - Imports data from the old database to the new database.
 
 Usage: Run from the terminal as such:
@@ -13,13 +13,13 @@ Goto the scripts directory:
 Or run from the root of the project:
 > scripts/db_migrate.py
 
-General Process outline:
-0. Warning to the user.
-1. Old data extraction.  An API has been created in the old project ...
-  - Extract Data: retrieves data from the specified tables in the old database.
-  - Transform Data: the API to JSON format understood by the new project.
-2. New schema.  The schema is created in "this" new database.
-3. Load Data: The bulk load API in "this" project inserts the data using required business logic.
+For production databases install mysql:
+
+brew install mysql
+
+or
+
+sudo apt-get install mysql-server
 
 """
 import shutil
@@ -27,6 +27,8 @@ import sys
 import os
 import requests
 import subprocess
+import json
+from datetime import datetime
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
 
@@ -44,10 +46,10 @@ PASSWORD = app.config['DEFAULT_PASSWORD']
 # Backup the old database
 def backup_database(db_uri, backup_uri, db_string):
     """Backup the current database."""
+    db_name = db_uri.split('/')[-1]
+    backup_file = f"{db_name}_backup.sql"   
     if 'mysql' in db_string:
-        # MySQL backup using mysqldump
-        db_name = db_uri.split('/')[-1]
-        backup_file = f"{db_name}_backup.sql"
+        os.environ['MYSQL_PWD'] = app.config["DB_PASSWORD"]
         try:
             subprocess.run([
                 'mysqldump',
@@ -59,7 +61,9 @@ def backup_database(db_uri, backup_uri, db_string):
             ], check=True, shell=True)
             print(f"MySQL database backed up to {backup_file}")
         except subprocess.CalledProcessError as e:
-            print(f"Failed to backup MySQL database: {e}")
+            print(f"Backup tool mysqldump not working or installed {e}")
+        finally:
+            del os.environ['MYSQL_PWD']
     elif 'sqlite' in db_string:
         # SQLite backup using shutil
         if backup_uri:
@@ -114,6 +118,28 @@ def extract_data(cookies):
         return response.json(), None
     except requests.RequestException as e:
         return None, {'message': 'Failed to extract old data', 'code': response.status_code, 'error': str(e)}
+    
+# Write data to JSON file
+def write_data_to_json(data, json_file):
+    """Write data to JSON file and create a timestamped backup if the file exists."""
+    if os.path.exists(json_file):
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        backup_file = f"{json_file}.{timestamp}.bak"
+        shutil.copyfile(json_file, backup_file)
+        print(f"Existing JSON data backed up to {backup_file}")
+    
+    with open(json_file, 'w') as f:
+        json.dump(data, f, indent=4)
+    print(f"Data written to {json_file}")
+
+# Read data from JSON file
+def read_data_from_json(json_file):
+    """Read data from JSON file."""
+    if os.path.exists(json_file):
+        with open(json_file, 'r') as f:
+            return json.load(f), None
+    else:
+        return None, {'message': 'JSON data file not found', 'code': 404, 'error': 'File not found'}
 
 # Main extraction and loading process
 def main():
@@ -159,13 +185,19 @@ def main():
     cookies, error = authenticate(UID, PASSWORD)
     if error:
         print(error)
-        sys.exit(1)
-    
-    # Step 2: Extract Old data 
-    old_data, error = extract_data(cookies)
-    if error:
-        print(error)
-        sys.exit(1)
+        print("Using local JSON data as fallback.")
+        old_data, error = read_data_from_json(JSON_DATA)
+        if error:
+            print(error)
+            sys.exit(1)
+    else:
+        # Step 2: Extract Old data 
+        old_data, error = extract_data(cookies)
+        if error:
+            print(error)
+            sys.exit(1)
+        else:
+            write_data_to_json(old_data, JSON_DATA)
     
     print("Old data extracted successfully.")
     

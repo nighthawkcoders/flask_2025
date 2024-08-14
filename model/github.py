@@ -8,7 +8,7 @@ class GitHubUser(Resource):
         url = app.config['GITHUB_API_URL'] + f'/users/{uid}'
         token = app.config['GITHUB_TOKEN']
         if not token:
-            # assume Test Server and noot using GitHub API  
+            # assume Test Server and not using GitHub API  
             return {'message': 'GITHUB_TOKEN not set'}, 200
 
         try:
@@ -36,18 +36,29 @@ class GitHubUser(Resource):
         }
         return profile_links, 200
 
-    def get_commit_stats(self, uid, start_date_str, end_date_str):
-        url = "https://api.github.com/graphql" 
+    def make_github_graphql_request(self, query, variables):
+        url = "https://api.github.com/graphql"
         token = app.config['GITHUB_TOKEN']
-        # Convert to datetime objects
-        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-        end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
-        # Convert to ISO 8601 format
-        start_date_iso = start_date.strftime('%Y-%m-%dT%H:%M:%SZ')
-        end_date_iso = end_date.strftime('%Y-%m-%dT%H:%M:%SZ')
         
         if not token:
             return {'message': 'GITHUB_TOKEN not set'}, 400
+
+        headers = {'Authorization': f'bearer {token}'}
+        try:
+            response = requests.post(url, json={'query': query, 'variables': variables}, headers=headers)
+            
+            if response.status_code != 200:
+                return {'message': 'GitHub API failed to fetch data'}, response.status_code
+
+            return response.json(), 200
+        except Exception as e:
+            return {'message': str(e)}, 500
+
+    def get_commit_stats(self, uid, start_date_str, end_date_str):
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+        start_date_iso = start_date.strftime('%Y-%m-%dT%H:%M:%SZ')
+        end_date_iso = end_date.strftime('%Y-%m-%dT%H:%M:%SZ')
 
         query = """
         query($login: String!, $from: DateTime!, $to: DateTime!) {
@@ -57,26 +68,101 @@ class GitHubUser(Resource):
                 }
             }
         }
-        # ten_days_before_now = (datetime.utcnow() - timedelta(days=10)).strftime('%Y-%m-%dT%H:%M:%SZ')
         """
         variables = {
             "login": uid,
             "from": start_date_iso,
             "to": end_date_iso
         }
-        try:
-            headers = {'Authorization': f'bearer {token}'}
-            response = requests.post(url, json={'query': query, 'variables': variables}, headers=headers)
+        data, status_code = self.make_github_graphql_request(query, variables)
+        if status_code != 200:
+            return data, status_code
 
-            if response.status_code != 200:
-                return {'message': 'GitHub API failed to fetch commit stats'}, response.status_code
+        commit_stats = data['data']['user']['contributionsCollection']['totalCommitContributions']
+        return {'total_commit_contributions': commit_stats}, 200
 
-            data = response.json()
-            commit_stats = data['data']['user']['contributionsCollection']['totalCommitContributions']
-            return {'total_commit_contributions': commit_stats}, 200
+    def get_pr_stats(self, uid, start_date_str, end_date_str):
+        query = """
+        query($query: String!) {
+            search(query: $query, type: ISSUE, first: 100) {
+                edges {
+                    node {
+                        ... on PullRequest {
+                            title
+                            url
+                            createdAt
+                            repository {
+                                nameWithOwner
+                            }
+                            author {
+                                login
+                            }
+                            comments(first: 10) {
+                                nodes {
+                                    body
+                                    author {
+                                        login
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        """
+        search_query = f"type:pr author:{uid} created:{start_date_str}..{end_date_str}"
+        variables = {
+            "query": search_query
+        }
+        data, status_code = self.make_github_graphql_request(query, variables)
+        if status_code != 200:
+            return data, status_code
 
-        except Exception as e:
-            return {'message': str(e)}, 500
+        pr_stats = data['data']['search']['edges']
+
+        return {'pull_requests': pr_stats}, 200
+
+    def get_issue_stats(self, uid, start_date_str, end_date_str):
+        query = """
+        query($query: String!) {
+            search(query: $query, type: ISSUE, first: 100) {
+                edges {
+                    node {
+                        ... on Issue {
+                            title
+                            url
+                            createdAt
+                            repository {
+                                nameWithOwner
+                            }
+                            author {
+                                login
+                            }
+                            comments(first: 10) {
+                                nodes {
+                                    body
+                                    author {
+                                        login
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        """
+        search_query = f"type:issue author:{uid} created:{start_date_str}..{end_date_str}"
+        variables = {
+            "query": search_query
+        }
+        data, status_code = self.make_github_graphql_request(query, variables)
+        if status_code != 200:
+            return data, status_code
+
+        issue_stats = data['data']['search']['edges']
+        return {'issues': issue_stats}, 200
 
 
 class GitHubOrg(Resource):
