@@ -28,6 +28,21 @@ class KasmUtils:
         except requests.RequestException as e:
             return None, {'message': 'Failed to authenticate', 'code': 500, 'error': str(e)}
         return response, None
+    
+    @staticmethod
+    def get_authenticated_config():
+        '''Utility method to combine get_config and authenticate''' 
+        config, error = KasmUtils.get_config()
+        if error:
+            return None, error
+
+        _, error = KasmUtils.authenticate(config)
+        if error:
+            return None, error
+
+        # Return KASM API keys
+        return config, None
+
 
     @staticmethod
     def get_user_id(users, uid):
@@ -58,6 +73,23 @@ class KasmUtils:
         except:
             return None, {'message': 'Failed to get users', 'code': 500}
         return users, None
+    
+    @staticmethod
+    def get_kasm_user_id(config, uid):
+        '''Utility method to combine get_users and get_user_id'''
+        # Extract all KASM users
+        users, error = KasmUtils.get_users(config)
+        if error:
+            return None, error
+        
+        # find the requested user_id
+        user_id = KasmUtils.get_user_id(users, uid)
+        if user_id is None:
+            return None, {'message': f'Kasm user {uid} not found', 'code': 404}
+       
+        # Return KASM user_id, this is KASM internal reference number 
+        return user_id, None
+        
     
     @staticmethod
     def get_groups(config):
@@ -219,26 +251,20 @@ class KasmUser:
     def post(self, name, uid, password):
         '''
         Interface to create a KASM user
-        Why this method does not fail? Even if the user is created.
+        Why this method does not throw exception? Even if the user is not created.
         This method does not fail as Kasm is a complementary and 3rd party service. 
-        If failure occurs, admin or user will try again.
+        If failure occurs, admin or user will be required totry again.
         
         uid: User ID to delete
         username: Should be set to username for all use cases, the changes between uid and username are getting confusing.
         '''
-        
-        # Get KASM keys
-        config, error = KasmUtils.get_config()
-        if error:
-            # print(error)
-            return
-
-        # Check if KASM keys can authenticate, the "_" means data is not used
-        _, error = KasmUtils.authenticate(config)
+       
+        # Get KASM API keys 
+        config, error = KasmUtils.get_authenticated_config()
         if error:
             print(error)
             return
-
+         
         # Prepare data for KASM user creation
         full_name = name
         words = full_name.split()
@@ -268,38 +294,24 @@ class KasmUser:
     def post_groups(self, uid, groups):
         '''
         Interface to update a KASM user groups
-        Why this method does not fail? Even if the user is not found or not updated.
+        Why this method does not throw exception? Even if the user is not found or not updated.
         This method does not fail as Kasm is a complementary and 3rd party service. 
-        If failure occurs, admin or user will try again.
+        If failure occurs, admin or user will be required to try again.
         
         uid: User ID to update
         groups: List of groups to add to user
         '''
-        
-        config, error = KasmUtils.get_config()
-        if error:
-            print(error)
-            return
-        if config is None:
-            print("Configuration is missing")
-            return
-        
-        # Check if KASM keys can authenticate, the "_" means data is not used
-        _, error = KasmUtils.authenticate(config)
+       
+        # Get KASM API keys 
+        config, error = KasmUtils.get_authenticated_config()
         if error:
             print(error)
             return
         
-        # Extract all KASM users
-        users, error = KasmUtils.get_users(config)
-        if error:
-            print(error)
-            return
-        
-        # find the requested user_id, and get all the info out of it ie the last name, first name, password, all of it
-        kasm_user_id = KasmUtils.get_user_id(users, uid)
+        # Get KASM user_id
+        kasm_user_id, error = KasmUtils.get_kasm_user_id(config, uid)
         if kasm_user_id is None:
-            print({'message': f'Kasm user {uid} not found for update', 'code': 404})
+            print(error)
             return
         
         # update user groups
@@ -314,36 +326,24 @@ class KasmUser:
     def delete(self, uid):
         '''
         Interface to delete a KASM user.
-        Why this method does not fail? Even if the user is not found or not deleted.
+        Why this method does not throw exception? Even if the user is not found or not deleted.
         This method does not fail as Kasm is a complementary and 3rd party service. 
-        If failure occurs, admin or user will try again.
+        If failure occurs, admin or user will be required to try again.
         
         uid: User ID to delete
         '''
         
-        # Get KASM keys
-        config, error = KasmUtils.get_config()
-        if error:
-            # print(error)
-            return
-
-        # Check if KASM keys can authenticate, the "_" means data is not used
-        _, error = KasmUtils.authenticate(config)
+        # Get KASM API keys 
+        config, error = KasmUtils.get_authenticated_config()
         if error:
             print(error)
             return
         
-        # Extract all KASM users
-        users, error = KasmUtils.get_users(config)
-        if error:
-            print(error)
-            return
-        
-        # Find the requested user_id, Kasm reference number to uid
-        kasm_user_id = KasmUtils.get_user_id(users, uid)
+        # Get KASM user_id
+        kasm_user_id, error = KasmUtils.get_kasm_user_id(config, uid)
         if kasm_user_id is None:
-            print({'message': f'Kasm user {uid} not found for delete', 'code': 404})
-            return
+            print(error)
+            return 
 
         # Attempt to delete the user
         response, error = KasmUtils.delete_user(config, kasm_user_id)
