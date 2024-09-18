@@ -142,6 +142,55 @@ class KasmUtils:
         return response, None
     
     @staticmethod
+    def update_user_password(config, user_id, new_password):
+        '''Utility method to update a KASM user's password'''
+        SERVER, API_KEY, API_KEY_SECRET = config
+        try:
+            # Kasm API to update a user password
+            url = SERVER + "/api/public/update_user_password"
+            data = {
+                "api_key": API_KEY,
+                "api_key_secret": API_KEY_SECRET,
+                "target_user": {
+                    "user_id": user_id,
+                    "password": new_password
+                }
+            }
+            response = requests.post(url, json=data)
+            if response.status_code != 200:
+                return None, response
+        except requests.RequestException as e:
+            return None, {'message': 'Failed to update password', 'code': 500, 'error': str(e)}
+        return response, None
+    
+    
+    
+    @staticmethod
+    def update_user_name(config, user_id, first_name, last_name):
+        '''Utility method to update a KASM user's name'''
+        SERVER, API_KEY, API_KEY_SECRET = config
+        try:
+            # Kasm API to update a user name
+            url = SERVER + "/api/public/update_user_name"
+            data = {
+                "api_key": API_KEY,
+                "api_key_secret": API_KEY_SECRET,
+                "target_user": {
+                    "user_id": user_id,
+                    "first_name": first_name,
+                    "last_name": last_name
+                }
+            }
+            response = requests.post(url, json=data)
+            if response.status_code != 200:
+                return None, response
+        except requests.RequestException as e:
+            return None, {'message': 'Failed to update name', 'code': 500, 'error': str(e)}
+        return response, None
+
+
+        
+    @staticmethod
     def get_user_details(config, user_id):
         '''Utility method to get a KASM user details'''
         SERVER, API_KEY, API_KEY_SECRET = config
@@ -250,45 +299,75 @@ class KasmUtils:
 class KasmUser:
     def post(self, name, uid, password):
         '''
-        Interface to create a KASM user
-        Why this method does not throw exception? Even if the user is not created.
-        This method does not fail as Kasm is a complementary and 3rd party service. 
-        If failure occurs, admin or user will be required totry again.
+        Refactored method to check if a user exists in KASM, update details if they do,
+        or create a new user if they don't exist.
         
-        uid: User ID to delete
-        username: Should be set to username for all use cases, the changes between uid and username are getting confusing.
+        uid: User ID to check
+        name: Full name of the user (first and last names)
+        password: User's password (required for creation, optional for updates)
         '''
-       
+
         # Get KASM API keys 
         config, error = KasmUtils.get_authenticated_config()
         if error:
             print(error)
             return
-         
-        # Prepare data for KASM user creation
+        
+        # Kept first and last name code
         full_name = name
         words = full_name.split()
-
         if len(words) > 1:
-            first_name = " ".join(words[:-1])  # Join all but the last word for first name
-            last_name = words[-1]  # Last word is the last name
+            first_name = " ".join(words[:-1])
+            last_name = words[-1]
         else:
-            first_name = words[0]  # Only word is the first name
-            last_name = ""  # No last name
+            first_name = words[0]
+            last_name = ""
+        
+        # Check if the user exists in KASM with  get_kasm_user_id
+        kasm_user_id, error = KasmUtils.get_kasm_user_id(config, uid)
+        
+        if kasm_user_id:
+            # User exists, check for updates
+            print(f"User with UID {uid} exists. Proceeding with updates...")
 
-        # Check if password is provided
-        if password is None:
-            print({'message': 'Password is required', 'code': 400})
-            return 
+            # Update password if provided
+            if password:
+                response, error = KasmUtils.update_user_password(config, kasm_user_id, password)
+                if error:
+                    print(f"Failed to update password: {error}")
+                else:
+                    print(f"Password updated for user {uid}: {response}")
+            
+            # Write method to update name 
+            current_user_info, error = KasmUtils.get_user_details(config, kasm_user_id)
+            if current_user_info:
+                current_first_name = current_user_info.get("first_name")
+                current_last_name = current_user_info.get("last_name")
+                
+                if current_first_name != first_name or current_last_name != last_name:
+                    response, error = KasmUtils.update_user_name(config, kasm_user_id, first_name, last_name)
+                    if error:
+                        print(f"Failed to update name: {error}")
+                    else:
+                        print(f"Name updated for user {uid}: {response}")
+            else:
+                print(f"Failed to retrieve user information: {error}")
         
-        # Attempt to create a KASM user
-        response, error = KasmUtils.create_user(config, uid, first_name, last_name, password)
-        if error:
-            print(error)
-            return
-        
-        # Debugging output 
-        print(response)
+        else:
+            # User does not exist, create a new one
+            print(f"User with UID {uid} does not exist. Creating a new user...")
+
+            # Ensure password is provided
+            if not password:
+                print({'message': 'Password is required for new user creation', 'code': 400})
+                return
+            
+            # Attempt to create the user
+            response, error = KasmUtils.create_user(config, uid, first_name, last_name, password)
+            if error:
+                print(f"Failed to create user: {error}")
+            else:
+                print(f"User {uid} created: {response}")
 
         
     def post_groups(self, uid, groups):
