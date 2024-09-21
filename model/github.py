@@ -59,8 +59,8 @@ class GitHubUser(Resource):
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
         start_date_iso = start_date.strftime('%Y-%m-%dT%H:%M:%SZ')
         end_date_iso = end_date.strftime('%Y-%m-%dT%H:%M:%SZ')
-
-        query = """
+        
+        total_commit_query = """
         query($login: String!, $from: DateTime!, $to: DateTime!) {
             user(login: $login) {
                 contributionsCollection(from: $from, to: $to) {
@@ -69,17 +69,51 @@ class GitHubUser(Resource):
             }
         }
         """
-        variables = {
+        total_commit_variables = {
             "login": uid,
             "from": start_date_iso,
             "to": end_date_iso
         }
-        data, status_code = self.make_github_graphql_request(query, variables)
-        if status_code != 200:
-            return data, status_code
+        
+        total_commit_data, total_commit_status_code = self.make_github_graphql_request(total_commit_query, total_commit_variables)
+        total_commits = 0
+        if total_commit_status_code == 200:
+            total_commits = total_commit_data['data']['user']['contributionsCollection']['totalCommitContributions']
 
-        commit_stats = data['data']['user']['contributionsCollection']['totalCommitContributions']
-        return {'total_commit_contributions': commit_stats}, 200
+        detailed_commit_query = """
+        query($login: String!, $from: DateTime!, $to: DateTime!) {
+            user(login: $login) {
+                contributionsCollection(from: $from, to: $to) {
+                    commitContributionsByRepository {
+                        repository {
+                            nameWithOwner
+                        }
+                        contributions(first: 100) {
+                            nodes {
+                                commitCount
+                                occurredAt
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        """
+        detailed_commit_variables = {
+            "login": uid,
+            "from": start_date_iso,
+            "to": end_date_iso
+        }
+        
+        detailed_commit_data, detailed_commit_status_code = self.make_github_graphql_request(detailed_commit_query, detailed_commit_variables)
+        details_of_commits = []
+        if detailed_commit_status_code == 200:
+            details_of_commits = detailed_commit_data['data']['user']['contributionsCollection']['commitContributionsByRepository']
+        
+        return {
+            'total_commit_contributions': total_commits,
+            'details_of_commits': details_of_commits
+        }, 200
 
     def get_pr_stats(self, uid, start_date_str, end_date_str):
         query = """
