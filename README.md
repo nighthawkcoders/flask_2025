@@ -35,23 +35,8 @@ cd flask_2025
 
 ```bash
 python -m venv venv
-source venv/bin/activate
 pip install -r requirements.txt
 ```
-
-- Run from Terminal without VSCode
-
-  - Setup database and init data.
-  
-  ```bash
-  ./scripts/db_init.sh
-  ```
-
-  - Run a Python server from the command line without VSCode
-
-  ```bash
-  python main.py
-  ```
 
 ### Open project in VSCode
 
@@ -59,23 +44,42 @@ pip install -r requirements.txt
   - From Terminal run VSCode
 
   ```bash
+  source venv/bin/activate
   code .
   ```
-
-  - From Extensions Marketplace install `SQLite3 Editor`
-    - Open and view SQL database file `instance/volumes/user_management.db`
-    - Note admin is `toby` password `password`
 
   - Open Setting: Ctrl-Shift P or Cmd-Shift
     - Search Python: Select Interpreter.
     - Match interpreter to `which python` from terminal.
     - Shourd be ./venv/bin/python
 
-  - Select/open main.py
-  - Start with Play button
-    - Play button sub option contains Debug
-  - Click on loop back address in terminal to launch
-    - Should be http://127.0.0.1:8087
+  - From Extensions Marketplace install `SQLite3 Editor`
+    - Open and view SQL database file `instance/volumes/user_management.db`
+    - Note admin is `toby` password `password`
+
+  - Make a local `.env` file to contain your secret passwords
+
+  ```shell
+  # User Defaults
+  ADMIN_USER='toby'
+  ADMIN_PASSWORD='123Toby!'
+  DEFAULT_USER='hop'
+  DEFAULT_PASSWORD='123Hop!'
+  ```
+
+  - Make the database and init data.
+  
+  ```bash
+  ./scripts/db_init.sh
+  ```
+
+  - Run the Project
+    - Select/open `main.py` in VSCode
+    - Start with Play button
+      - Play button sub option contains Debug
+    - Click on loop back address in terminal to launch
+      - Output window will contain page to launch http://127.0.0.1:8087
+    - Login using your secrets
 
 ## Idea
 
