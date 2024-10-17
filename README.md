@@ -35,6 +35,7 @@ cd flask_2025
 
 ```bash
 python -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -44,7 +45,6 @@ pip install -r requirements.txt
   - From Terminal run VSCode
 
   ```bash
-  source venv/bin/activate
   code .
   ```
 
