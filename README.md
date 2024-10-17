@@ -24,7 +24,7 @@ Use this project to create a Flask Server.
 - Open a Terminal, clone a project and `cd` into the project directory
 
 ```bash
-mkdir ~/nighthawk; cd ~/nighthawk
+mkdir -p ~/nighthawk; cd ~/nighthawk
 
 git clone https://github.com/nighthawkcoders/flask_2025.git
 
@@ -34,39 +34,48 @@ cd flask_2025
 - Install python dependencies for Flask, etc.
 
 ```bash
+python -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
 - Run from Terminal without VSCode
 
-  - Setup database and init data
+  - Setup database and init data.
   
   ```bash
-    scripts/db_migrate.sh
-    ```
+  ./scripts/db_init.sh
+  ```
 
   - Run a Python server from the command line without VSCode
 
-    ```bash
-    python main.py
-    ```
+  ```bash
+  python main.py
+  ```
 
 ### Open project in VSCode
 
 - Prepare VSCode and run
-
   - From Terminal run VSCode
 
-    ```bash
-    code .
-    ```
+  ```bash
+  code .
+  ```
+
+  - From Extensions Marketplace install `SQLite3 Editor`
+    - Open and view SQL database file `instance/volumes/user_management.db`
+    - Note admin is `toby` password `password`
 
   - Open Setting: Ctrl-Shift P or Cmd-Shift
-    - Search Python: Select Interpreter
-    - Match interpreter to `which python` from terminal
+    - Search Python: Select Interpreter.
+    - Match interpreter to `which python` from terminal.
+    - Shourd be ./venv/bin/python
 
-  - Select main.py and Play button
-  - Try the Play button and try to Debug
+  - Select/open main.py
+  - Start with Play button
+    - Play button sub option contains Debug
+  - Click on loop back address in terminal to launch
+    - Should be http://127.0.0.1:8087
 
 ## Idea
 
