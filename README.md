@@ -70,7 +70,7 @@ pip install -r requirements.txt
   - Make the database and init data.
   
   ```bash
-  ./scripts/db_init.sh
+  ./scripts/db_init.py
   ```
 
   - Explore newly created SQL database
