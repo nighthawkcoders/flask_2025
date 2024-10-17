@@ -2,13 +2,13 @@
 
 > This is a project to support AP Computer Science Principles (CSP) as well as a UC articulated Data Structures course. It was crafted iteratively starting in 2020 to the present time.  The primary purposes are ...
 
-- Used as starter code for student projects for AP CSP and Data Structures curriculum.
+- Used as starter code for student projects for `AP CSP 1 and 2` and `Data Structures 1` curriculum.
 - Used to teach key principles in learning the Python Flask programming environment.
 - Used as a backend server to service API's in a frontend-to-backend pipeline. Review the `api` folder in the project for endpoints.
-- Contains a minimal frontend, mostly to support Administrative functionality in the `templates` folder.
-- Contains SQL database code in the `model` folder to introduce concepts of persistent data and storage.
-- Contains capabilities for deployment and has been used with AWS, Ubuntu, Docker, docker-compose, and Nginx to deploy a WSGI server.
-- Contains APIs to support user authentication and cookies, a great deal of which was contributed by Aiden Wu a former student in CSP.  
+- Contains a minimal frontend, mostly to support Administrative functionality using the `templates` folder and `Jinja2` to define UIs.
+- Contains SQL database code in the `model` folder to introduce concepts of persistent data and storage.  Perisistence folder is `instance/volumes` for generated SQLite3 db.
+- Contains capabilities for deployment and has been used with AWS, Ubuntu, Docker, docker-compose, and Nginx to `deploy a WSGI server`.
+- Contains APIs to support `user authentication and cookies`, a great deal of which was contributed by Aiden Wu a former student in CSP.  
 
 ## Flask Portfolio Starter
 
@@ -16,12 +16,13 @@ Use this project to create a Flask Server.
 
 - GitHub link: [flask_2025](https://github.com/nighthawkcoders/flask_2025)
 - The runtime link is published under the About on the GitHub link.
+- `Create a template from this repository` if you plan on making GitHub changes.
 
 ## The conventional way to get started
 
 > Quick steps that can be used with MacOS, WSL Ubuntu, or Ubuntu; this uses Python 3.9 or later as a prerequisite.
 
-- Open a Terminal, clone a project and `cd` into the project directory
+- Open a Terminal, clone a project and `cd` into the project directory.  Use a `different link` and name for `name` for clone to match your repo.
 
 ```bash
 mkdir -p ~/nighthawk; cd ~/nighthawk
@@ -55,9 +56,8 @@ pip install -r requirements.txt
 
   - From Extensions Marketplace install `SQLite3 Editor`
     - Open and view SQL database file `instance/volumes/user_management.db`
-    - Note admin is `toby` password `password`
 
-  - Make a local `.env` file to contain your secret passwords
+  - Make a local `.env` file in root of project to contain your secret passwords
 
   ```shell
   # User Defaults
@@ -72,6 +72,11 @@ pip install -r requirements.txt
   ```bash
   ./scripts/db_init.sh
   ```
+
+  - Explore newly created SQL database
+    - Navigate too instance/volumes
+    - View/open `user_management.db`
+    - Loook at `Users` table in viewer
 
   - Run the Project
     - Select/open `main.py` in VSCode
