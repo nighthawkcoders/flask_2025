@@ -7,6 +7,31 @@ from model.github import GitHubUser, GitHubOrg
 analytics_api = Blueprint('analytics_api', __name__, url_prefix='/api/analytics')
 api = Api(analytics_api)
 
+def get_date_range(body):
+    start_date = body.get('start_date')
+    end_date = body.get('end_date')
+    
+    if not start_date or not end_date:
+        today = datetime.today()
+        year = today.year
+
+        if today >= datetime(year, 6, 15) and today <= datetime(year, 11, 14):
+            start_date = datetime(year, 6, 1)
+            end_date = datetime(year, 11, 14)
+        elif today >= datetime(year, 11, 15) and today <= datetime(year + 1, 3, 14):
+            start_date = datetime(year, 11, 1)
+            end_date = datetime(year + 1, 3, 14)
+        elif today >= datetime(year, 4, 15) and today <= datetime(year, 6, 14):
+            start_date = datetime(year, 4, 1)
+            end_date = datetime(year, 6, 14)
+        else:
+            raise ValueError('Date is out of the defined trimesters')
+
+        start_date = start_date.strftime('%Y-%m-%d')
+        end_date = end_date.strftime('%Y-%m-%d')
+
+    return start_date, end_date
+
 class GitHubUserAPI(Resource):
     @token_required()
     def get(self):
@@ -47,32 +72,7 @@ class UserCommits(Resource):
             except Exception as e:
                 body = {}
             
-            start_date = body.get('start_date')
-            end_date = body.get('end_date')
-            
-            # If start_date or end_date is not provided, determine the current trimester
-            if not start_date or not end_date:
-                today = datetime.today()
-                year = today.year
-
-                # Tri 1: Aug 15 to Nov 14 (includes June 15 to Aug 14 of the previous year) 
-                if today >= datetime(year, 6, 15) and today <= datetime(year, 11, 14):
-                    start_date = datetime(year, 6, 15)
-                    end_date = datetime(year, 11, 14)
-                # Tri 2: Nov 15 to March 14
-                elif today >= datetime(year, 11, 15) and today <= datetime(year + 1, 3, 14):
-                    start_date = datetime(year, 11, 1)
-                    end_date = datetime(year + 1, 3, 14)
-                # Tri 3: April 15 to June 14
-                elif today >= datetime(year, 4, 15) and today <= datetime(year, 6, 14):
-                    start_date = datetime(year, 4, 1)
-                    end_date = datetime(year, 6, 14)
-                else:
-                    return {'message': 'Date is out of the defined trimesters'}, 400
-
-                # Convert dates to ISO 8601 format
-                start_date = start_date.strftime('%Y-%m-%d')
-                end_date = end_date.strftime('%Y-%m-%d')
+            start_date, end_date = get_date_range(body)
 
             github_user_resource = GitHubUser()
             response = github_user_resource.get_commit_stats(current_user.uid, start_date, end_date)
@@ -94,32 +94,7 @@ class UserPrs(Resource):
             except Exception as e:
                 body = {}
             
-            start_date = body.get('start_date')
-            end_date = body.get('end_date')
-            
-            # If start_date or end_date is not provided, determine the current trimester
-            if not start_date or not end_date:
-                today = datetime.today()
-                year = today.year
-
-                # Tri 1: Aug 15 to Nov 14 (includes June 15 to Aug 14 of the previous year) 
-                if today >= datetime(year, 6, 15) and today <= datetime(year, 11, 14):
-                    start_date = datetime(year, 6, 15)
-                    end_date = datetime(year, 11, 14)
-                # Tri 2: Nov 15 to March 14
-                elif today >= datetime(year, 11, 15) and today <= datetime(year + 1, 3, 14):
-                    start_date = datetime(year, 11, 15)
-                    end_date = datetime(year + 1, 3, 14)
-                # Tri 3: April 15 to June 14
-                elif today >= datetime(year, 4, 15) and today <= datetime(year, 6, 14):
-                    start_date = datetime(year, 4, 15)
-                    end_date = datetime(year, 6, 14)
-                else:
-                    return {'message': 'Date is out of the defined trimesters'}, 400
-
-                # Convert dates to ISO 8601 format
-                start_date = start_date.strftime('%Y-%m-%d')
-                end_date = end_date.strftime('%Y-%m-%d')
+            start_date, end_date = get_date_range(body)
 
             github_user_resource = GitHubUser()
             response = github_user_resource.get_pr_stats(current_user.uid, start_date, end_date)
@@ -141,32 +116,7 @@ class UserIssues(Resource):
             except Exception as e:
                 body = {}
             
-            start_date = body.get('start_date')
-            end_date = body.get('end_date')
-            
-            # If start_date or end_date is not provided, determine the current trimester
-            if not start_date or not end_date:
-                today = datetime.today()
-                year = today.year
-
-                # Tri 1: Aug 15 to Nov 14 (includes June 15 to Aug 14 of the previous year) 
-                if today >= datetime(year, 6, 15) and today <= datetime(year, 11, 14):
-                    start_date = datetime(year, 6, 15)
-                    end_date = datetime(year, 11, 14)
-                # Tri 2: Nov 15 to March 14
-                elif today >= datetime(year, 11, 15) and today <= datetime(year + 1, 3, 14):
-                    start_date = datetime(year, 11, 15)
-                    end_date = datetime(year + 1, 3, 14)
-                # Tri 3: April 15 to June 14
-                elif today >= datetime(year, 4, 15) and today <= datetime(year, 6, 14):
-                    start_date = datetime(year, 4, 15)
-                    end_date = datetime(year, 6, 14)
-                else:
-                    return {'message': 'Date is out of the defined trimesters'}, 400
-
-                # Convert dates to ISO 8601 format
-                start_date = start_date.strftime('%Y-%m-%d')
-                end_date = end_date.strftime('%Y-%m-%d')
+            start_date, end_date = get_date_range(body)
 
             github_user_resource = GitHubUser()
             response = github_user_resource.get_issue_stats(current_user.uid, start_date, end_date)
