@@ -19,7 +19,7 @@ def get_date_range(body):
             start_date = datetime(year, 6, 1)
             end_date = datetime(year, 11, 14)
         elif today >= datetime(year, 11, 15) and today <= datetime(year + 1, 3, 14):
-            start_date = datetime(year, 11, 1)
+            start_date = datetime(year, 9, 1)
             end_date = datetime(year + 1, 3, 14)
         elif today >= datetime(year, 4, 15) and today <= datetime(year, 6, 14):
             start_date = datetime(year, 4, 1)
@@ -128,6 +128,50 @@ class UserIssues(Resource):
         except Exception as e:
             return {'message': str(e)}, 500
 
+class UserIssueComments(Resource):
+    @token_required()
+    def get(self):
+        try:
+            current_user = g.current_user
+            try:
+                body = request.get_json()
+            except Exception as e:
+                body = {}
+            
+            start_date, end_date = get_date_range(body)
+
+            github_user_resource = GitHubUser()
+            response = github_user_resource.get_issue_comment_stats(current_user.uid, start_date, end_date)
+            
+            if response[1] != 200:
+                return response
+
+            return jsonify(response[0])
+        except Exception as e:
+            return {'message': str(e)}, 500
+
+class UserReceivedIssueComments(Resource):
+    @token_required()
+    def get(self):
+        try:
+            current_user = g.current_user
+            try:
+                body = request.get_json()
+            except Exception as e:
+                body = {}
+            
+            start_date, end_date = get_date_range(body)
+
+            github_user_resource = GitHubUser()
+            response = github_user_resource.get_total_received_issue_comments(current_user.uid, start_date, end_date)
+            
+            if response[1] != 200:
+                return response
+
+            return jsonify(response[0])
+        except Exception as e:
+            return {'message': str(e)}, 500
+
 class GitHubOrgUsers(Resource):
     def get(self, org_name):
         try:
@@ -159,5 +203,7 @@ api.add_resource(UserProfileLinks, '/github/user/profile_links')
 api.add_resource(UserCommits, '/github/user/commits')
 api.add_resource(UserPrs, '/github/user/prs')
 api.add_resource(UserIssues, '/github/user/issues')
+api.add_resource(UserIssueComments, '/github/user/issue_comments')
+api.add_resource(UserReceivedIssueComments, '/github/user/received_issue_comments')
 api.add_resource(GitHubOrgUsers, '/github/org/<string:org_name>/users')
 api.add_resource(GitHubOrgRepos, '/github/org/<string:org_name>/repos')

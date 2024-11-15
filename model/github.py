@@ -173,7 +173,8 @@ class GitHubUser(Resource):
                             author {
                                 login
                             }
-                            comments(first: 10) {
+                            comments {
+                                totalCount
                                 nodes {
                                     body
                                     author {
@@ -197,6 +198,19 @@ class GitHubUser(Resource):
 
         issue_stats = data['data']['search']['edges']
         return {'issues': issue_stats}, 200
+
+    def get_total_received_issue_comments(self, user_id, start_date, end_date):
+        issues_data, status_code = self.get_issue_stats(user_id, start_date, end_date)
+        if status_code != 200:
+            return issues_data, status_code
+        
+        total_comments = 0
+        for issue in issues_data["issues"]:
+            node = issue.get('node')
+            if node and 'comments' in node and node['comments']:
+                total_comments += node['comments']['totalCount']
+        
+        return {"total_received_comments": total_comments}, 200
 
 
 class GitHubOrg(Resource):
