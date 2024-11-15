@@ -61,11 +61,11 @@ class UserCommits(Resource):
                     end_date = datetime(year, 11, 14)
                 # Tri 2: Nov 15 to March 14
                 elif today >= datetime(year, 11, 15) and today <= datetime(year + 1, 3, 14):
-                    start_date = datetime(year, 11, 15)
+                    start_date = datetime(year, 11, 1)
                     end_date = datetime(year + 1, 3, 14)
                 # Tri 3: April 15 to June 14
                 elif today >= datetime(year, 4, 15) and today <= datetime(year, 6, 14):
-                    start_date = datetime(year, 4, 15)
+                    start_date = datetime(year, 4, 1)
                     end_date = datetime(year, 6, 14)
                 else:
                     return {'message': 'Date is out of the defined trimesters'}, 400
