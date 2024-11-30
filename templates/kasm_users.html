@@ -1,0 +1,73 @@
+{% extends "layouts/base.html" %}
+{% set project = "Kasm User Data" %}
+
+{% block body %}
+<div class="container mt-5">
+    <h1 class="text-center">KASM Users</h1>
+    
+    <!-- Check if there are users -->
+    {% if users %}
+    <table class="table table-bordered table-striped table-hover" id="userTable">
+        <thead class="thead-dark">
+            <tr>
+                <th>Username</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Most Recent Use of Kasm (Date)</th> <!-- Fixed the missing closing tag -->
+            </tr>
+        </thead>
+        
+        <tbody>
+            <!-- Loop through each user and display their data -->
+            {% for user in users %}
+                {% if user.username == current_user.id or current_user.role == 'Admin' %}
+                <tr>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.first_name or "N/A" }}</td>
+                    <td>{{ user.last_name or "N/A" }}</td>
+                    <td>{{user.last_session or "N/A"}}</td>
+                </tr>
+                {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="alert alert-info text-center" role="alert">
+        No users found.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block background %}
+<style>
+    #userTable {
+        background-color: #fff;
+        color: #000;
+    }
+
+    #userTable th, #userTable td {
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    #userTable thead {
+        background-color: #343a40;
+        color: #fff;
+    }
+
+    #userTable tbody tr:hover {
+        background-color: #f1f1f1;
+    }
+
+    .alert-info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border-color: #bee5eb;
+    }
+
+    .container {
+        padding: 20px;
+    }
+</style>
+{% endblock %}

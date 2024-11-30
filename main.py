@@ -1,11 +1,12 @@
 # imports from flask
 from urllib.parse import urljoin, urlparse
-from flask import abort, redirect, render_template, request, send_from_directory, url_for, jsonify  # import render_template from "public" flask libraries
+from flask import abort, redirect, render_template, request, send_from_directory, url_for, jsonify, current_app # import render_template from "public" flask libraries
 from flask_login import current_user, login_user, logout_user
 from flask.cli import AppGroup
 from flask_login import current_user, login_required
 from flask import current_app
 from werkzeug.security import generate_password_hash
+from dotenv import load_dotenv
 
 
 # import "objects" from "this" project
@@ -19,6 +20,16 @@ from api.analytics import analytics_api
 # database Initialization functions
 from model.user import User, initUsers
 # server only Views
+
+import os
+import requests
+
+# Load environment variables
+load_dotenv()
+
+app.config['KASM_SERVER'] = os.getenv('KASM_SERVER')
+app.config['KASM_API_KEY'] = os.getenv('KASM_API_KEY')
+app.config['KASM_API_KEY_SECRET'] = os.getenv('KASM_API_KEY_SECRET')
 
 # register URIs for api endpoints
 app.register_blueprint(user_api)
@@ -119,6 +130,42 @@ def reset_password(user_id):
     if user.update({"password": app.config['DEFAULT_PASSWORD']}):
         return jsonify({'message': 'Password reset successfully'}), 200
     return jsonify({'error': 'Password reset failed'}), 500
+
+@app.route('/kasm_users')
+def kasm_users():
+    # Fetch the configuration from environment or app config
+    SERVER = current_app.config.get('KASM_SERVER')
+    API_KEY = current_app.config.get('KASM_API_KEY')
+    API_KEY_SECRET = current_app.config.get('KASM_API_KEY_SECRET')
+
+    if not SERVER or not API_KEY or not API_KEY_SECRET:
+        return render_template('error.html', message='KASM keys are missing'), 400
+
+    try:
+        # Prepare the API request
+        url = SERVER + "/api/public/get_users"
+        data = {
+            "api_key": API_KEY,
+            "api_key_secret": API_KEY_SECRET
+        }
+        
+        # Make the POST request to KASM API
+        response = requests.post(url, json=data)
+
+        # Check for success
+        if response.status_code != 200:
+            return render_template('error.html', message='Failed to get users', code=response.status_code), response.status_code
+
+        # Extract the users list from the response
+        users = response.json().get('users', [])
+
+    except requests.RequestException as e:
+        return render_template('error.html', message=f'Failed to connect to KASM: {str(e)}'), 500
+
+    # Render the kasm_users.html template with the fetched users
+    return render_template('kasm_users.html', users=users)
+
+
 
 # Create an AppGroup for custom commands
 custom_cli = AppGroup('custom', help='Custom commands')
