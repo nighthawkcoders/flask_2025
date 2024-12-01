@@ -195,6 +195,9 @@ def kasm_users():
         
 @app.route('/delete_user/<user_id>', methods=['DELETE'])
 def delete_user_kasm(user_id):
+    if current_user.role != 'Admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
     SERVER = current_app.config.get('KASM_SERVER')
     API_KEY = current_app.config.get('KASM_API_KEY')
     API_KEY_SECRET = current_app.config.get('KASM_API_KEY_SECRET')
@@ -220,6 +223,35 @@ def delete_user_kasm(user_id):
 
     except requests.RequestException as e:
         return {'message': 'Error connecting to KASM API', 'error': str(e)}, 500
+
+
+@app.route('/update_user/<string:uid>', methods=['PUT'])
+def update_user(uid):
+    if current_user.role != 'Admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    
+    data = request.get_json()
+    print(f"Request Data: {data}")  # Log the incoming data
+
+    kasm_server_needed = data.get('kasm_server_needed')
+
+    # Find and update the user in the database
+    user = User.query.filter_by(_uid=uid).first()
+    if user:
+        print(f"Found user: {user.uid}")  # Log found user UID
+        user.kasm_server_needed = kasm_server_needed
+        db.session.commit()
+        return jsonify({"message": "User updated successfully."}), 200
+    else:
+        print("User not found.")  # Log when user is not found
+        return jsonify({"message": "User not found."}), 404
+
+
+
+
+
+
 
 
     
