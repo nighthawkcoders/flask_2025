@@ -1,149 +1,144 @@
 {% extends "layouts/base.html" %}
 {% set project = "Kasm User Data" %}
 
+
 {% block body %}
 <div class="container mt-5">
-    <h1 class="text-center">KASM Users</h1>
-    
-    {% if users %}
-    <table class="table table-bordered table-striped table-hover" id="userTable">
-        <thead class="thead-dark">
-            <tr>
-                <th>Username</th>
-                <th>First Name</th>
-                <th>Last Name</th>
-                <th>Most Recent Use of Kasm (Date)</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        
-        <tbody>
-            {% for user in users %}
-                {% if user.username == current_user.id or current_user.role == 'Admin' %}
-                <tr data-user-id="{{ user.user_id }}">
-                    <td>{{ user.username }}</td>
-                    <td>{{ user.first_name or "N/A" }}</td>
-                    <td>{{ user.last_name or "N/A" }}</td>
-                    <td>{{ user.last_session or "N/A" }}</td>
-                    <td>
-                        <!-- Trash can icon -->
-                        <button class="btn btn-danger btn-sm delete-user-btn">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </td>
-                </tr>
-                {% endif %}
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <div class="alert alert-info text-center" role="alert">
-        No users found.
-    </div>
-    {% endif %}
+   <h1 class="text-center">KASM Users</h1>
+  
+   {% if users %}
+   <table class="table table-bordered table-striped table-hover" id="userTable">
+       <thead class="thead-dark">
+           <tr>
+               <th>Username</th>
+               <th>First Name</th>
+               <th>Last Name</th>
+               <th>Most Recent Use of Kasm (Date)</th>
+               <th>Actions</th>
+           </tr>
+       </thead>
+      
+       <tbody>
+           {% for user in users %}
+               {% if user.username == current_user.id or current_user.role == 'Admin' %}
+               <tr data-user-id="{{ user.user_id }}">
+                   <td>{{ user.username }}</td>
+                   <td>{{ user.first_name or "N/A" }}</td>
+                   <td>{{ user.last_name or "N/A" }}</td>
+                   <td>{{ user.last_session or "N/A" }}</td>
+                   <td>
+                       <!-- Trash can icon -->
+                       <button class="btn btn-danger btn-sm delete-user-btn">
+                           <i class="fas fa-trash-alt"></i>
+                       </button>
+                   </td>
+               </tr>
+               {% endif %}
+           {% endfor %}
+       </tbody>
+   </table>
+   {% else %}
+   <div class="alert alert-info text-center" role="alert">
+       No users found.
+   </div>
+   {% endif %}
 </div>
 {% endblock %}
+
 
 {% block background %}
 <script src="https://kit.fontawesome.com/a076d05399.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const deleteButtons = document.querySelectorAll('.delete-user-btn');
+   document.addEventListener('DOMContentLoaded', function () {
+       const deleteButtons = document.querySelectorAll('.delete-user-btn');
 
-        // Function to send PUT request to update kasm_server_needed and then delete user
-        function updateAndDeleteUser(uid, row) {
-            if (confirm('Are you sure you want to delete this user?')) {
-                // Step 1: Update kasm_server_needed to false
-                fetch(`/update_user/${uid}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ kasm_server_needed: false })
-                })
-                .then(response => {
-                    if (response.ok) {
-                        // Step 2: If update is successful, delete the user
-                        const userId = row.getAttribute('data-user-id'); // Use the correct userId from the row's data attribute
-                        fetch(`/delete_user/${userId}`, {
-                            method: 'DELETE',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            }
-                        })
-                        .then(deleteResponse => {
-                            if (deleteResponse.ok) {
-                                row.remove(); // Remove the row from the table
-                                alert('User deleted successfully.');
-                            } else {
-                                return deleteResponse.json().then(data => {
-                                    alert('Failed to delete user: ' + data.message);
-                                });
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            alert('An error occurred while deleting the user.');
-                        });
-                    } else {
-                        return response.json().then(data => {
-                            alert('Failed to update user: ' + data.message);
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while updating the user.');
-                });
-            }
-        }
 
-        // Attach click event to delete buttons
-        deleteButtons.forEach(button => {
-            button.addEventListener('click', function () {
-                const row = this.closest('tr');
-                const uid = row.querySelector('td:first-child').textContent.trim(); // Get the UID from the first cell
-                updateAndDeleteUser(uid, row); // Call the function to update and then delete the user
-            });
-        });
-    });
+       // Function to send PUT request to update `kasm_server_needed`
+       function updateUser(uid, row) {
+           if (confirm('Are you sure you want to update this user\'s status?')) {
+               fetch(`/update_user/${uid}`, {
+                   method: 'PUT',
+                   headers: {
+                       'Content-Type': 'application/json'
+                   },
+                   body: JSON.stringify({ kasm_server_needed: false })
+               })
+               .then(response => {
+                   if (!response.ok) {
+                       throw new Error('Looks like this user is not in the student database. You will have to delete this user from KASm manually.');
+                   }
+                   row.remove();
+                   alert('User status updated successfully');
+
+
+               })
+               .catch(error => {
+                   console.error('Error:', error);
+                   alert('An error occurred while updating the user');
+               });
+           }
+       }
+
+
+       // Attach click event to delete buttons
+       deleteButtons.forEach(button => {
+           button.addEventListener('click', function () {
+               const row = this.closest('tr'); // Get the table row containing the button
+               const uid = row.querySelector('td:first-child').textContent.trim(); // Get the UID from the first cell
+               updateUser(uid,row); // Call the function to update the user
+           });
+       });
+   });
 </script>
 
 
-    
+
+
+
+
+  
 <style>
-    #userTable {
-        background-color: #fff;
-        color: #000;
-    }
+   #userTable {
+       background-color: #fff;
+       color: #000;
+   }
 
-    #userTable th, #userTable td {
-        text-align: center;
-        vertical-align: middle;
-    }
 
-    #userTable thead {
-        background-color: #343a40;
-        color: #fff;
-    }
+   #userTable th, #userTable td {
+       text-align: center;
+       vertical-align: middle;
+   }
 
-    #userTable tbody tr:hover {
-        background-color: #f1f1f1;
-    }
 
-    .alert-info {
-        background-color: #d1ecf1;
-        color: #0c5460;
-        border-color: #bee5eb;
-    }
+   #userTable thead {
+       background-color: #343a40;
+       color: #fff;
+   }
 
-    .container {
-        padding: 20px;
-    }
 
-    .btn-danger {
-        color: white;
-        border: none;
-    }
+   #userTable tbody tr:hover {
+       background-color: #f1f1f1;
+   }
+
+
+   .alert-info {
+       background-color: #d1ecf1;
+       color: #0c5460;
+       border-color: #bee5eb;
+   }
+
+
+   .container {
+       padding: 20px;
+   }
+
+
+   .btn-danger {
+       color: white;
+       border: none;
+   }
 </style>
 {% endblock %}
+
+
+
