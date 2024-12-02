@@ -227,21 +227,23 @@ def delete_user_kasm(user_id):
 
 @app.route('/update_user/<string:uid>', methods=['PUT'])
 def update_user(uid):
+    # Authorization check
     if current_user.role != 'Admin':
         return jsonify({'error': 'Unauthorized'}), 403
-    
-    
+
+    # Get the JSON data from the request
     data = request.get_json()
     print(f"Request Data: {data}")  # Log the incoming data
 
-    kasm_server_needed = data.get('kasm_server_needed')
-
-    # Find and update the user in the database
+    # Find the user in the database
     user = User.query.filter_by(_uid=uid).first()
     if user:
-        print(f"Found user: {user.uid}")  # Log found user UID
-        user.kasm_server_needed = kasm_server_needed
-        db.session.commit()
+        print(f"Found user: {user.uid}")  # Log the found user's UID
+        
+        # Update the user using the provided data
+        user.update(data)  # Assuming `user.update(data)` is a method on your User model
+        
+        # Save changes to the database
         return jsonify({"message": "User updated successfully."}), 200
     else:
         print("User not found.")  # Log when user is not found
