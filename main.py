@@ -244,7 +244,6 @@ def update_user(uid):
         user.update(data)  # Assuming `user.update(data)` is a method on your User model
         
         # Save changes to the database
-        db.session.commit()
         return jsonify({"message": "User updated successfully."}), 200
     else:
         print("User not found.")  # Log when user is not found
