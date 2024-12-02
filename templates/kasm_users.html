@@ -50,39 +50,67 @@
     document.addEventListener('DOMContentLoaded', function () {
         const deleteButtons = document.querySelectorAll('.delete-user-btn');
 
+        // Function to send PUT request to update kasm_server_needed and then delete user
+        function updateAndDeleteUser(uid, row) {
+            if (confirm('Are you sure you want to delete this user?')) {
+                // Step 1: Update kasm_server_needed to false
+                fetch(`/update_user/${uid}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ kasm_server_needed: false })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Step 2: If update is successful, delete the user
+                        const userId = row.getAttribute('data-user-id'); // Use the correct userId from the row's data attribute
+                        fetch(`/delete_user/${userId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        })
+                        .then(deleteResponse => {
+                            if (deleteResponse.ok) {
+                                row.remove(); // Remove the row from the table
+                                alert('User deleted successfully.');
+                            } else {
+                                return deleteResponse.json().then(data => {
+                                    alert('Failed to delete user: ' + data.message);
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('An error occurred while deleting the user.');
+                        });
+                    } else {
+                        return response.json().then(data => {
+                            alert('Failed to update user: ' + data.message);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while updating the user.');
+                });
+            }
+        }
+
+        // Attach click event to delete buttons
         deleteButtons.forEach(button => {
             button.addEventListener('click', function () {
                 const row = this.closest('tr');
-                const userId = row.getAttribute('data-user-id');
-
-                if (confirm('Are you sure you want to delete this user?')) {
-                    fetch(`/delete_user/${userId}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    })
-                    .then(response => {
-                        if (response.ok) {
-                            row.remove();
-                            alert('User deleted successfully.');
-                        } else {
-                            return response.json().then(data => {
-                                alert('Failed to delete user: ' + data.message);
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('An error occurred while deleting the user.');
-                    });
-                }
+                const uid = row.querySelector('td:first-child').textContent.trim(); // Get the UID from the first cell
+                updateAndDeleteUser(uid, row); // Call the function to update and then delete the user
             });
         });
     });
 </script>
 
 
+    
 <style>
     #userTable {
         background-color: #fff;
