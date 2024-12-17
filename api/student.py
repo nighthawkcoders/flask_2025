@@ -48,6 +48,3 @@ class StudentAPI:
     api.add_resource(_John, '/student/john')
     api.add_resource(_Jeff, '/student/jeff')
     api.add_resource(_Bulk, '/students')
-
-# Instantiate the StudentAPI to register the endpoints
-student_api_instance = StudentAPI()
