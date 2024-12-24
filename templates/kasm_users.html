@@ -55,7 +55,7 @@
 
        // Function to send PUT request to update `kasm_server_needed`
        function updateUser(uid, row) {
-           if (confirm('Are you sure you want to update this user\'s status?')) {
+           if (confirm('Are you sure you want to delete this user?')) {
                fetch(`/update_user/${uid}`, {
                    method: 'PUT',
                    headers: {
