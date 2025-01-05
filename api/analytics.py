@@ -238,32 +238,34 @@ class AdminUserIssues(Resource):
             return {'message': str(e)}, 500
 
 
+
 class AdminUserCommits(Resource):
-    @login_required
     def post(self, uid):
         try:
+            # Ensure the current user is an Admin
             if current_user.role != 'Admin':
                 return {'message': 'Access denied: Admins only.'}, 403
 
-            # Fetch the request body to extract date range (if any)
+            # Parse request body to extract date range (if any)
             try:
                 body = request.get_json()
             except Exception as e:
                 body = {}
 
+            # Extract the start and end date
             start_date, end_date = get_date_range(body)
 
-            # Fetch the user based on uid
+            # Fetch the user based on the provided UID
             user = User.query.filter_by(_uid=uid).first()
 
             if not user:
                 return {'message': 'User not found'}, 404
 
-            # Fetch commit data for the specific user
+            # Fetch commit data for the user from GitHub
             github_user_resource = GitHubUser()
             response = github_user_resource.get_commit_stats(user.uid, start_date, end_date)
 
-            # Check if response is None or doesn't have the expected structure
+            # If the response is invalid, handle it
             if response is None or len(response) < 2:
                 return {'message': 'Error fetching commits for this user'}, 500
 
@@ -273,7 +275,43 @@ class AdminUserCommits(Resource):
             })
 
         except Exception as e:
+            # Handle all other exceptions
             return {'message': str(e)}, 500
+
+    def check_rate_limit(self, response):
+        """Check if the rate limit is exceeded based on response headers"""
+        remaining = int(response.headers.get('X-RateLimit-Remaining', 0))
+        reset_time = int(response.headers.get('X-RateLimit-Reset', time.time()))
+        if remaining == 0:
+            # If no requests remaining, calculate the time to wait
+            wait_time = reset_time - time.time()
+            print(f"Rate limit exceeded. Waiting for {wait_time} seconds.")
+            time.sleep(wait_time + 5)  # Adding a buffer time to avoid immediate retry
+            return True
+        return False
+
+    def retry_request(self, user_uid, start_date, end_date, retries=3):
+        """Retry the request in case of rate limiting or server error"""
+        attempt = 0
+        while attempt < retries:
+            try:
+                response = github_user_resource.get_commit_stats(user_uid, start_date, end_date)
+
+                if response.status_code == 500:
+                    # Server error - retry after some delay
+                    print(f"Attempt {attempt + 1}: Server error, retrying...")
+                    time.sleep(5 * (2 ** attempt))  # Exponential backoff
+                elif response.status_code == 403:
+                    if self.check_rate_limit(response):
+                        # Retry after rate limit reset
+                        return self.retry_request(user_uid, start_date, end_date)
+                else:
+                    return response.json()  # Successfully processed the request
+            except Exception as e:
+                print(f"Error occurred: {e}")
+            attempt += 1
+        return None  # If retries are exhausted
+
 
 
 api.add_resource(GitHubUserAPI, '/github/user')
