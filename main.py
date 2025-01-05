@@ -1,13 +1,14 @@
 # imports from flask
 from datetime import datetime
 from urllib.parse import urljoin, urlparse
-from flask import abort, redirect, render_template, request, send_from_directory, url_for, jsonify, current_app # import render_template from "public" flask libraries
+from flask import abort, redirect, render_template, request, send_from_directory, url_for, jsonify, current_app, g # import render_template from "public" flask libraries
 from flask_login import current_user, login_user, logout_user
 from flask.cli import AppGroup
 from flask_login import current_user, login_required
 from flask import current_app
 from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
+from api.jwt_authorize import token_required
 
 
 # import "objects" from "this" project
@@ -253,62 +254,7 @@ def update_user(uid):
         return jsonify({"message": "User not found."}), 404
 
 
-@app.route('/users/github_commits/<int:user_id>', methods=['POST'])
-@login_required
-def get_github_commits(user_id):
-    if current_user.role != 'Admin':
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    user = User.query.get(user_id)
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
 
-    # Get the request body for date range
-    body = request.get_json()
-    start_date, end_date = get_date_range(body)  # Assuming you have a helper function to extract dates
-
-    # Assume that GitHub commit data is fetched from an external service or function
-    github_user_resource = GitHubUser()  # Replace with actual GitHub API handling
-    response = github_user_resource.get_commit_stats(user.github_id, start_date, end_date)
-
-    if response is None or len(response) < 2:
-        return jsonify({'error': 'Error fetching commits for this user'}), 500
-
-    return jsonify({
-        'github_id': user.github_id,
-        'commits': response[0]  # Assuming response contains commit stats
-    }), 200
-
-@app.route('/users/github_issues/<int:user_id>', methods=['POST'])
-@login_required
-def get_github_issues(user_id):
-    if current_user.role != 'Admin':
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    user = User.query.get(user_id)
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-
-    # Get the request body for date range
-    body = request.get_json()
-    start_date, end_date = get_date_range(body)  # Assuming you have a helper function to extract dates
-
-    # Assume that GitHub issue data is fetched from an external service or function
-    github_user_resource = GitHubUser()  # Replace with actual GitHub API handling
-    response = github_user_resource.get_issue_stats(user.github_id, start_date, end_date)
-
-    if response is None or len(response) < 2:
-        return jsonify({'error': 'Error fetching issues for this user'}), 500
-
-    return jsonify({
-        'github_id': user.github_id,
-        'issues': response[0]  # Assuming response contains issue stats
-    }), 200
-
-
-
-
-    
     
 # Create an AppGroup for custom commands
 custom_cli = AppGroup('custom', help='Custom commands')

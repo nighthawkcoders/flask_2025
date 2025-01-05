@@ -1,10 +1,11 @@
 from flask import Blueprint, request, jsonify, g
 from flask_restful import Api, Resource
-from flask_login import current_user, login_required, login_user, logout_user
+from flask_login import current_user, login_required
 from datetime import datetime
 from api.jwt_authorize import token_required
 from model.github import GitHubUser, GitHubOrg
 from model.user import User
+
 
 analytics_api = Blueprint('analytics_api', __name__, url_prefix='/api/analytics')
 api = Api(analytics_api)
@@ -200,10 +201,8 @@ class GitHubOrgRepos(Resource):
             return {'message': str(e)}, 500
         
 class AdminUserIssues(Resource):
-    @token_required()
     def post(self, uid):
         try:
-            current_user = g.current_user
             # Check if the current user is an Admin
             if current_user.role != 'Admin':
                 return {'message': 'Access denied: Admins only.'}, 403
@@ -240,11 +239,9 @@ class AdminUserIssues(Resource):
 
 
 class AdminUserCommits(Resource):
-    @token_required()
+    @login_required
     def post(self, uid):
         try:
-            current_user = g.current_user
-            # Check if the current user is an Admin
             if current_user.role != 'Admin':
                 return {'message': 'Access denied: Admins only.'}, 403
 
@@ -288,5 +285,5 @@ api.add_resource(UserIssueComments, '/github/user/issue_comments')
 api.add_resource(UserReceivedIssueComments, '/github/user/received_issue_comments')
 api.add_resource(GitHubOrgUsers, '/github/org/<string:org_name>/users')
 api.add_resource(GitHubOrgRepos, '/github/org/<string:org_name>/repos')
-api.add_resource(AdminUserCommits, '/github/admin/commits/<string:uid>')  # Admin endpoint for commits
-api.add_resource(AdminUserIssues, '/github/admin/issues/<string:uid>')  # Admin endpoint for issues
+api.add_resource(AdminUserCommits, '/commits/<string:uid>')  # Admin endpoint for commits
+api.add_resource(AdminUserIssues, '/issues/<string:uid>')  # Admin endpoint for issues

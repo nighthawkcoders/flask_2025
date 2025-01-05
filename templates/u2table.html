@@ -93,14 +93,14 @@
                 try {
                     // Fetch commits and issues from the admin API with date range using the user UID
                     const [commitsResponse, issuesResponse] = await Promise.all([
-                        fetch(`/users/github_commits/${userUid}`, {
+                        fetch(`/api/analytics/commits/${userUid}`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                             },
                             body: JSON.stringify({ start_date: startDate, end_date: endDate })
                         }),
-                        fetch(`/users/github_issues/${userUid}`, {
+                        fetch(`/api/analytics/commits/${userUid}`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -117,11 +117,9 @@
                     const issuesData = await issuesResponse.json();
 
                     // Match the user UID to get specific data
-                    const userCommits = commitsData.find(user => user.uid === userUid);
-                    const userIssues = issuesData.find(user => user.uid === userUid);
+                    commitsElement.innerText = commitsData.commits?.total_commit_contributions || "0";
+                    issuesElement.innerText = "0"; // Adjust based on actual issues data structure
 
-                    commitsElement.innerText = userCommits ? userCommits.commits : "0";
-                    issuesElement.innerText = userIssues ? userIssues.issues : "0";
                 } catch (error) {
                     console.error(`Error fetching data for User UID ${userUid}:`, error);
                     commitsElement.innerText = "Error";
