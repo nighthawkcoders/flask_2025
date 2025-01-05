@@ -1,8 +1,10 @@
 from flask import Blueprint, request, jsonify, g
 from flask_restful import Api, Resource
+from flask_login import current_user, login_required, login_user, logout_user
 from datetime import datetime
 from api.jwt_authorize import token_required
 from model.github import GitHubUser, GitHubOrg
+from model.user import User
 
 analytics_api = Blueprint('analytics_api', __name__, url_prefix='/api/analytics')
 api = Api(analytics_api)
@@ -197,6 +199,87 @@ class GitHubOrgRepos(Resource):
             return jsonify(response[0])
         except Exception as e:
             return {'message': str(e)}, 500
+        
+class AdminUserIssues(Resource):
+    @token_required
+    def post(self, uid):
+        try:
+            current_user = g.current_user
+            # Check if the current user is an Admin
+            if current_user.role != 'Admin':
+                return {'message': 'Access denied: Admins only.'}, 403
+
+            # Fetch the request body to extract date range (if any)
+            try:
+                body = request.get_json()
+            except Exception as e:
+                body = {}
+
+            start_date, end_date = get_date_range(body)
+
+            # Fetch the user based on uid
+            user = User.query.filter_by(_uid=uid).first()
+
+            if not user:
+                return {'message': 'User not found'}, 404
+
+            # Fetch submitted issue data for the specific user
+            github_user_resource = GitHubUser()
+            response = github_user_resource.get_issue_stats(user.uid, start_date, end_date)
+
+            # Check if response is None or doesn't have the expected structure
+            if response is None or len(response) < 2:
+                return {'message': 'Error fetching issues for this user'}, 500
+
+            return jsonify({
+                'uid': user.uid,
+                'issues': response[0]
+            })
+
+        except Exception as e:
+            return {'message': str(e)}, 500
+
+
+class AdminUserCommits(Resource):
+    @token_required
+    def post(self, uid):
+        try:
+            current_user = g.current_user
+            # Check if the current user is an Admin
+            if current_user.role != 'Admin':
+                return {'message': 'Access denied: Admins only.'}, 403
+
+            # Fetch the request body to extract date range (if any)
+            try:
+                body = request.get_json()
+            except Exception as e:
+                body = {}
+
+            start_date, end_date = get_date_range(body)
+
+            # Fetch the user based on uid
+            user = User.query.filter_by(_uid=uid).first()
+
+            if not user:
+                return {'message': 'User not found'}, 404
+
+            # Fetch commit data for the specific user
+            github_user_resource = GitHubUser()
+            response = github_user_resource.get_commit_stats(user.uid, start_date, end_date)
+
+            # Check if response is None or doesn't have the expected structure
+            if response is None or len(response) < 2:
+                return {'message': 'Error fetching commits for this user'}, 500
+
+            return jsonify({
+                'uid': user.uid,
+                'commits': response[0]
+            })
+
+        except Exception as e:
+            return {'message': str(e)}, 500
+
+
 
 api.add_resource(GitHubUserAPI, '/github/user')
 api.add_resource(UserProfileLinks, '/github/user/profile_links')
@@ -207,3 +290,5 @@ api.add_resource(UserIssueComments, '/github/user/issue_comments')
 api.add_resource(UserReceivedIssueComments, '/github/user/received_issue_comments')
 api.add_resource(GitHubOrgUsers, '/github/org/<string:org_name>/users')
 api.add_resource(GitHubOrgRepos, '/github/org/<string:org_name>/repos')
+api.add_resource(AdminUserCommits, '/github/admin/commits/<uid>')  # Admin endpoint for commits
+api.add_resource(AdminUserIssues, '/github/admin/issues/<uid>')  # Admin endpoint for issues
