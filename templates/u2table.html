@@ -84,12 +84,12 @@
                 const issuesElement = document.getElementById(`issues-${userUid}`);
                 const startDate = document.getElementById("start_date").value; // Get start date from input field
                 const endDate = document.getElementById("end_date").value;   // Get end date from input field
-
+        
                 if (!commitsElement || !issuesElement) {
                     console.error(`Elements for User UID ${userUid} not found`);
                     return;
                 }
-
+        
                 try {
                     // Fetch commits from the admin API with date range using the user UID
                     const commitsResponse = await fetch(`/api/analytics/commits/${userUid}`, {
@@ -109,22 +109,27 @@
                     // Match the user UID to get specific data
                     commitsElement.innerText = commitsData.commits?.total_commit_contributions || "0";
                     issuesElement.innerText = 0; // No issues response
-
-                    // Wait for 5 minutes (300000ms) to avoid hitting rate limits
-                    setTimeout(async () => {
-                        // Re-run the fetch request after waiting
-                        await fetchAdminData(userUid, startDate, endDate); // Corrected function call
-                    }, 5000000); // 5 minutes delay for rate limiting
                 } catch (error) {
                     console.error("Error:", error);
                 }
             }
-
-            // Loop through all users to fetch GitHub data based on their UID
-            document.querySelectorAll("[id^='commits-']").forEach(element => {
-                const userUid = element.id.split("-")[1];
-                fetchAdminData(userUid);
-            });
+        
+            // Function to handle the loop and introduce a delay after each user is processed
+            async function processUsersWithDelay() {
+                const users = document.querySelectorAll("[id^='commits-']");
+                
+                for (let i = 0; i < users.length; i++) {
+                    const userUid = users[i].id.split("-")[1];
+                    await fetchAdminData(userUid); // Fetch data for the user
+                    if (i < users.length - 1) {
+                        console.log("Waiting for 1 minute...");
+                        await new Promise(resolve => setTimeout(resolve, 15000)); // Wait for 1 minute before processing the next user
+                    }
+                }
+            }
+        
+            // Start processing users with a delay
+            processUsersWithDelay();
 
             // Handle delete action
             document.querySelectorAll(".delete-btn").forEach(button => {
