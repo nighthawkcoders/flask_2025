@@ -1,237 +1,171 @@
-{% extends "layouts/base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>User Analytics</h1>
 
-{% block body %}
-
-<div class="container mt-5">
-    <h1>User Management</h1>
-    <table class="table table-striped" id="userTable">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>UID</th>
-                <th>Role</th>
-                <th>Profile Picture</th>
-                <th>Kasm Server Needed</th>
-                <th>Classes</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for user in user_data %}
-            {% if user.id == current_user.id or current_user.role == 'Admin' %}
-            <tr>
-                <td>{{ user.id }}</td>
-                <td>{{ user.name }}</td>
-                <td>{{ user.uid }}</td>
-                <td>{{ user.role }}</td>
-                <td>
-                    {% if user.pfp %}
-                    <img src="{{ url_for('uploaded_file', filename=user.uid + '/' + user.pfp) }}" alt="Profile Picture" class="img-thumbnail" style="width: 50px; height: 50px;">
-                    {% else %}
-                    <img src="{{ url_for('static', filename='assets/pythondb.png') }}" alt="Default Profile Picture" class="img-thumbnail" style="width: 50px; height: 50px;">
-                    {% endif %}
-                </td>
-                <td id="kasm-{{ user.id }}">{{ user.kasm_server_needed }}</td>
-                <td>
-                    {% for section in user.sections %}
-                    {{ section.abbreviation }}{% if not loop.last %}, {% endif %}
-                    {% endfor %}
-                </td>
-                <td>
-                    <button class="btn btn-primary edit-btn" data-id="{{ user.id }}">Edit</button>
-                    {% if current_user.role == 'Admin' %}
-                    <button class="btn btn-danger delete-btn" data-id="{{ user.id }}">Delete</button>
-                    <button class="btn btn-warning reset-password-btn" data-id="{{ user.id }}">Reset Password</button>
-                    {% endif %}
-                </td>                
-            </tr>
-            {% endif %}
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-
-<!-- Modal for edit form -->
-<div class="modal fade" id="editModal" tabindex="-1" role="dialog" aria-labelledby="editModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editModalLabel">Edit User</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="editUserForm">
-                    <input type="hidden" id="userId">
-                    <div class="form-group">
-                        <label for="kasmServerNeeded">Kasm Server Needed</label>
-                        <select class="form-control" id="kasmServerNeeded">
-                            <option value="true">True</option>
-                            <option value="false">False</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="csp">CSP</label>
-                        <input type="checkbox" id="csp">
-                    </div>
-                    <div class="form-group">
-                        <label for="csa">CSA</label>
-                        <input type="checkbox" id="csa">
-                    </div>
-                    <div class="form-group">
-                        <label for="robotics">Robotics</label>
-                        <input type="checkbox" id="robotics">
-                    </div>
-                    <div class="form-group">
-                        <label for="animation">Animation</label>
-                        <input type="checkbox" id="animation">
-                    </div>
-                    <button type="button" class="btn btn-primary" id="saveChanges">Save changes</button>
-                </form>
-            </div>
-        </div>
+        <!-- User Table -->
+        <table class="table table-striped" id="userTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>UID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Profile Picture</th>
+                    <th>Kasm Server Needed</th>
+                    <th>Courses</th>
+                    <th>Commits</th>
+                    <th>Issues</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Loop through each user data and display it in rows -->
+                {% for user in user_data %}
+                {% if user.id == current_user.id or current_user.role == 'Admin' %}
+                <tr id="user-{{ user.id }}">
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.uid }}</td>
+                    <td>{{ user.name }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.role }}</td>
+                    <td>
+                        {% if user.pfp %}
+                        <img src="{{ url_for('uploaded_file', filename=user.uid + '/' + user.pfp) }}" alt="Profile Picture" class="img-thumbnail" style="width: 50px; height: 50px;">
+                        {% else %}
+                        <img src="{{ url_for('static', filename='assets/pythondb.png') }}" alt="Default Profile Picture" class="img-thumbnail" style="width: 50px; height: 50px;">
+                        {% endif %}
+                    </td>
+                    <td id="kasm-{{ user.id }}">{{ user.kasm_server_needed }}</td>
+                    <td>
+                        {% for section in user.sections %}
+                        {{ section.abbreviation }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </td>
+                    <td id="commits-{{ user.uid }}">Loading...</td>
+                    <td id="issues-{{ user.uid }}">Loading...</td>
+                    <td>
+                        <button class="btn btn-danger delete-btn" data-id="{{ user.id }}">Delete</button>
+                        <button class="btn btn-warning reset-password-btn" data-id="{{ user.id }}">Reset Password</button>
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-</div>
 
-<!-- Modal for delete confirmation -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteModalLabel">Delete User</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete this user?</p>
-                <input type="hidden" id="deleteUserId">
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-danger" id="confirmDelete">Delete</button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 
-{% block background %}
-<script>
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        const editButtons = document.querySelectorAll('.edit-btn');
-        const deleteButtons = document.querySelectorAll('.delete-btn');
-        const resetPasswordButtons = document.querySelectorAll('.reset-password-btn');
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Function to fetch commits and issues data from the admin endpoints
+            async function fetchAdminData(userUid) {
+                const commitsElement = document.getElementById(`commits-${userUid}`);
+                const issuesElement = document.getElementById(`issues-${userUid}`);
 
+                if (!commitsElement || !issuesElement) {
+                    console.error(`Elements for User UID ${userUid} not found`);
+                    return;
+                }
 
-        editButtons.forEach(button => {
-            button.addEventListener('click', async function() {
-                const userId = this.getAttribute('data-id');
-                const kasm = document.getElementById(`kasm-${userId}`).textContent.trim().toLowerCase() === 'true';
+                // Calculate date range: last 30 days
+                const today = new Date();
+                const startDate = new Date();
+                startDate.setDate(today.getDate() - 30);
 
-                document.getElementById('kasmServerNeeded').value = kasm.toString();
-                document.getElementById('userId').value = userId;
+                const formattedStartDate = startDate.toISOString().split('T')[0];
+                const formattedEndDate = today.toISOString().split('T')[0];
 
-                // Fetch user's current classes (dummy example for checkboxes)
-                // Replace with actual fetch request based on your backend structure
-                const userClasses = {
-                    csp: true,
-                    csa: false,
-                    robotics: true,
-                    animation: false
-                };
-
-                document.getElementById('csp').checked = userClasses.csp;
-                document.getElementById('csa').checked = userClasses.csa;
-                document.getElementById('robotics').checked = userClasses.robotics;
-                document.getElementById('animation').checked = userClasses.animation;
-
-                $('#editModal').modal('show');
-            });
-        });
-
-        document.getElementById('saveChanges').addEventListener('click', function() {
-            const userId = document.getElementById('userId').value;
-            const kasmServerNeeded = document.getElementById('kasmServerNeeded').value === 'true';
-            const classes = {
-                csp: document.getElementById('csp').checked,
-                csa: document.getElementById('csa').checked,
-                robotics: document.getElementById('robotics').checked,
-                animation: document.getElementById('animation').checked
-            };
-
-            // Simulate AJAX request (replace with actual fetch)
-            const updatedData = {
-                kasmServerNeeded: kasmServerNeeded,
-                classes: classes
-            };
-
-            // Simulate server response (replace with actual fetch)
-            // Example: updating UI directly for demonstration
-            updateUserData(userId, updatedData);
-        });
-
-        function updateUserData(userId, updatedData) {
-            // Simulated response (replace with actual fetch)
-            console.log("Updating user data for user ID:", userId);
-            console.log("Updated data:", updatedData);
-
-            // Update UI with updated data
-            document.getElementById(`kasm-${userId}`).textContent = updatedData.kasmServerNeeded ? 'True' : 'False';
-
-            // Close modal after updating
-            $('#editModal').modal('hide');
-        }
-
-        deleteButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const userId = this.getAttribute('data-id');
-                document.getElementById('deleteUserId').value = userId;
-
-                $('#deleteModal').modal('show');
-            });
-        });
-
-        document.getElementById('confirmDelete').addEventListener('click', function() {
-            const userId = document.getElementById('deleteUserId').value;
-
-            // Simulated delete action (replace with actual fetch)
-            console.log("Deleting user with ID:", userId);
-
-            // Remove the user row from the table
-            document.querySelector(`button[data-id="${userId}"]`).closest('tr').remove();
-            $('#deleteModal').modal('hide');
-        });
-
-        resetPasswordButtons.forEach(button => {
-        button.addEventListener('click', async function() {
-            const userId = this.getAttribute('data-id');
-            const confirmReset = confirm('Are you sure you want to reset the password for this user?');
-
-            if (confirmReset) {
                 try {
-                    const response = await fetch(`/users/reset_password/${userId}`, {
+                    // Fetch commits from the admin API with date range using the user UID
+                    const commitsResponse = await fetch(`/api/analytics/commits/${userUid}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                      //      'Authorization': 'Bearer ' + ''
-                        }
+                        },
+                        body: JSON.stringify({ start_date: formattedStartDate, end_date: formattedEndDate })
                     });
 
-                    if (response.ok) {
-                        alert('Password reset successfully.');
-                    } else {
-                        const result = await response.json();
-                        alert('Failed to reset password: ' + result.error);
+                    if (!commitsResponse.ok) {
+                        throw new Error(`Error fetching data: ${commitsResponse.statusText}`);
                     }
+
+                    const commitsData = await commitsResponse.json();
+
+                    // Match the user UID to get specific data
+                    commitsElement.innerText = commitsData.commits?.total_commit_contributions || "0";
+                    issuesElement.innerText = 0; // No issues response
                 } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred while resetting the password.');
+                    console.error("Error:", error);
                 }
             }
+
+            // Function to handle the loop and introduce a delay after each user is processed
+            async function processUsersWithDelay() {
+                const users = document.querySelectorAll("[id^='commits-']");
+
+                for (let i = 0; i < users.length; i++) {
+                    const userUid = users[i].id.split("-")[1];
+                    await fetchAdminData(userUid); // Fetch data for the user
+                    if (i < users.length - 1) {
+                        console.log("Waiting for 15 seconds...");
+                        await new Promise(resolve => setTimeout(resolve, 15000)); // Wait for 15 seconds before processing the next user
+                    }
+                }
+            }
+
+            // Start processing users with a delay
+            processUsersWithDelay();
+
+            // Handle delete action
+            document.querySelectorAll(".delete-btn").forEach(button => {
+                button.addEventListener("click", function () {
+                    const id = this.dataset.id;
+                    fetch(`/users/delete/${id}`, {
+                        method: "DELETE",
+                        headers: { "Content-Type": "application/json" },
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            alert(data.message || "User deleted successfully.");
+                            location.reload();
+                        })
+                        .catch(error => {
+                            console.error("Error deleting user:", error);
+                            alert("Error deleting user.");
+                        });
+                });
+            });
+
+            // Handle reset password action
+            document.querySelectorAll(".reset-password-btn").forEach(button => {
+                button.addEventListener("click", function () {
+                    const id = this.dataset.id;
+                    fetch(`/users/reset_password/${id}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            alert(data.message || "Password reset successfully.");
+                        })
+                        .catch(error => {
+                            console.error("Error resetting password:", error);
+                            alert("Error resetting password.");
+                        });
+                });
+            });
         });
-    });
-    });
-</script>
-{% endblock %}
+    </script>
+</body>
+</html>
