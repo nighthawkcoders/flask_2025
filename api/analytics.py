@@ -5,6 +5,8 @@ from datetime import datetime
 from api.jwt_authorize import token_required
 from model.github import GitHubUser, GitHubOrg
 from model.user import User
+import time
+
 
 
 analytics_api = Blueprint('analytics_api', __name__, url_prefix='/api/analytics')
@@ -295,6 +297,7 @@ class AdminUserCommits(Resource):
         attempt = 0
         while attempt < retries:
             try:
+                github_user_resource = GitHubUser()
                 response = github_user_resource.get_commit_stats(user_uid, start_date, end_date)
 
                 if response.status_code == 500:
