@@ -211,6 +211,9 @@ class GitHubUser(Resource):
                 total_comments += node['comments']['totalCount']
         
         return {"total_received_comments": total_comments}, 200
+    
+    
+    
 
 
 class GitHubOrg(Resource):

@@ -1,13 +1,14 @@
 # imports from flask
 from datetime import datetime
 from urllib.parse import urljoin, urlparse
-from flask import abort, redirect, render_template, request, send_from_directory, url_for, jsonify, current_app # import render_template from "public" flask libraries
+from flask import abort, redirect, render_template, request, send_from_directory, url_for, jsonify, current_app, g # import render_template from "public" flask libraries
 from flask_login import current_user, login_user, logout_user
 from flask.cli import AppGroup
 from flask_login import current_user, login_required
 from flask import current_app
 from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
+from api.jwt_authorize import token_required
 
 
 # import "objects" from "this" project
@@ -21,6 +22,8 @@ from api.analytics import analytics_api
 from api.student import student_api
 # database Initialization functions
 from model.user import User, initUsers
+from model.github import GitHubUser
+from api.analytics import get_date_range
 # server only Views
 
 import os
@@ -40,6 +43,7 @@ app.register_blueprint(user_api)
 app.register_blueprint(section_api)
 app.register_blueprint(pfp_api) 
 app.register_blueprint(stock_api)
+
 app.register_blueprint(analytics_api)
 app.register_blueprint(student_api)
 
@@ -253,12 +257,6 @@ def update_user(uid):
 
 
 
-
-
-
-
-
-    
     
 # Create an AppGroup for custom commands
 custom_cli = AppGroup('custom', help='Custom commands')
