@@ -153,7 +153,6 @@ class UserIssueComments(Resource):
             return {'message': str(e)}, 500
 
 class UserReceivedIssueComments(Resource):
-    @token_required()
     def get(self):
         try:
             current_user = g.current_user
@@ -201,7 +200,7 @@ class GitHubOrgRepos(Resource):
             return {'message': str(e)}, 500
         
 class AdminUserIssues(Resource):
-    @token_required
+    @token_required()
     def post(self, uid):
         try:
             current_user = g.current_user
@@ -241,7 +240,7 @@ class AdminUserIssues(Resource):
 
 
 class AdminUserCommits(Resource):
-    @token_required
+    @token_required()
     def post(self, uid):
         try:
             current_user = g.current_user
@@ -280,7 +279,6 @@ class AdminUserCommits(Resource):
             return {'message': str(e)}, 500
 
 
-
 api.add_resource(GitHubUserAPI, '/github/user')
 api.add_resource(UserProfileLinks, '/github/user/profile_links')
 api.add_resource(UserCommits, '/github/user/commits')
@@ -290,5 +288,5 @@ api.add_resource(UserIssueComments, '/github/user/issue_comments')
 api.add_resource(UserReceivedIssueComments, '/github/user/received_issue_comments')
 api.add_resource(GitHubOrgUsers, '/github/org/<string:org_name>/users')
 api.add_resource(GitHubOrgRepos, '/github/org/<string:org_name>/repos')
-api.add_resource(AdminUserCommits, '/github/admin/commits/<uid>')  # Admin endpoint for commits
-api.add_resource(AdminUserIssues, '/github/admin/issues/<uid>')  # Admin endpoint for issues
+api.add_resource(AdminUserCommits, '/github/admin/commits/<string:uid>')  # Admin endpoint for commits
+api.add_resource(AdminUserIssues, '/github/admin/issues/<string:uid>')  # Admin endpoint for issues
