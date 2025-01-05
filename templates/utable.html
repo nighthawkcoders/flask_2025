@@ -1,105 +1,168 @@
 {% extends "layouts/base.html" %}
 
 {% block body %}
-<div class="container mt-5">
-    <h1>User Management</h1>
-    <table class="table table-striped" id="userTable">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>UID</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Profile Picture</th>
-                <th>Kasm Server Needed</th>
-                <th>Courses</th>
-                {% if current_user.role == 'Admin' %}
-                <th>Actions</th>
-                {% endif %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for user in user_data %}
-            {% if user.id == current_user.id or current_user.role == 'Admin' %}
-            <tr>
-                <td>{{ user.id }}</td>
-                <td>{{ user.uid }}</td>
-                <td>{{ user.name }}</td>
-                <td>{{ user.email }}</td>
-                <td>{{ user.role }}</td>
-                <td>
-                    {% if user.pfp %}
-                    <img src="{{ url_for('uploaded_file', filename=user.uid + '/' + user.pfp) }}" alt="Profile Picture" class="img-thumbnail" style="width: 50px; height: 50px;">
-                    {% else %}
-                    <img src="{{ url_for('static', filename='assets/pythondb.png') }}" alt="Default Profile Picture" class="img-thumbnail" style="width: 50px; height: 50px;">
-                    {% endif %}
-                </td>
-                <td id="kasm-{{ user.id }}">{{ user.kasm_server_needed }}</td>
-                <td>
-                    {% for section in user.sections %}
-                    {{ section.abbreviation }}{% if not loop.last %}, {% endif %}
-                    {% endfor %}
-                </td>
-                {% if current_user.role == 'Admin' %}
-                <td>
-                    <button class="btn btn-danger delete-btn" data-id="{{ user.id }}">Delete</button>
-                    <button class="btn btn-warning reset-password-btn" data-id="{{ user.id }}">Reset Password</button>
-                </td>
-                {% endif %}
-            </tr>
-            {% endif %}
-            {% endfor %}
-        </tbody>
-    </table>
-    {% if current_user.role == 'Admin' %}
-    <script>
-        $(document).ready(function() {
-            $("#userTable").DataTable();
 
-            $(document).on("click", ".delete-btn", function() {
-                const id = $(this).data("id");
-                fetch("/users/delete/" + id, {
-                    method: "DELETE",
-                    headers: {
-                        'Content-Type': 'application/json'
+    <div class="container mt-5">
+        <h1>User Management</h1>
+
+        <!-- User Table -->
+        <table class="table table-striped" id="userTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>UID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Profile Picture</th>
+                    <th>Kasm Server Needed</th>
+                    <th>Courses</th>
+                    <th>Commits</th>
+                    <th>Issues</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Loop through each user data and display it in rows -->
+                {% for user in user_data %}
+                {% if user.id == current_user.id or current_user.role == 'Admin' %}
+                <tr id="user-{{ user.id }}">
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.uid }}</td>
+                    <td>{{ user.name }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.role }}</td>
+                    <td>
+                        {% if user.pfp %}
+                        <img src="{{ url_for('uploaded_file', filename=user.uid + '/' + user.pfp) }}" alt="Profile Picture" class="img-thumbnail" style="width: 50px; height: 50px;">
+                        {% else %}
+                        <img src="{{ url_for('static', filename='assets/pythondb.png') }}" alt="Default Profile Picture" class="img-thumbnail" style="width: 50px; height: 50px;">
+                        {% endif %}
+                    </td>
+                    <td id="kasm-{{ user.id }}">{{ user.kasm_server_needed }}</td>
+                    <td>
+                        {% for section in user.sections %}
+                        {{ section.abbreviation }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </td>
+                    <td id="commits-{{ user.uid }}">Loading...</td>
+                    <td id="issues-{{ user.uid }}">Loading...</td>
+                    <td>
+                        <button class="btn btn-danger delete-btn" data-id="{{ user.id }}">Delete</button>
+                        <button class="btn btn-warning reset-password-btn" data-id="{{ user.id }}">Reset Password</button>
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Function to fetch commits and issues data from the admin endpoints
+            async function fetchAdminData(userUid) {
+                const commitsElement = document.getElementById(`commits-${userUid}`);
+                const issuesElement = document.getElementById(`issues-${userUid}`);
+
+                if (!commitsElement || !issuesElement) {
+                    console.error(`Elements for User UID ${userUid} not found`);
+                    return;
+                }
+
+                // Calculate date range: last 30 days
+                const today = new Date();
+                const startDate = new Date();
+                startDate.setDate(today.getDate() - 30);
+
+                const formattedStartDate = startDate.toISOString().split('T')[0];
+                const formattedEndDate = today.toISOString().split('T')[0];
+
+                try {
+                    // Fetch commits from the admin API with date range using the user UID
+                    const commitsResponse = await fetch(`/api/analytics/commits/${userUid}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ start_date: formattedStartDate, end_date: formattedEndDate })
+                    });
+
+                    if (!commitsResponse.ok) {
+                        throw new Error(`Error fetching data: ${commitsResponse.statusText}`);
                     }
-                })
-                .then(response => response.json().then(data => ({ status: response.status, body: data })))
-                .then(response => {
-                    if (response.status === 200) {
-                        alert(response.body.message);
-                        location.reload();
-                    } else {
-                        alert(response.body.error || "Failed to delete user.");
+
+                    const commitsData = await commitsResponse.json();
+
+                    // Match the user UID to get specific data
+                    commitsElement.innerText = commitsData.commits?.total_commit_contributions || "0";
+                    issuesElement.innerText = 0; // No issues response
+                } catch (error) {
+                    console.error("Error:", error);
+                }
+            }
+
+            // Function to handle the loop and introduce a delay after each user is processed
+            async function processUsersWithDelay() {
+                const users = document.querySelectorAll("[id^='commits-']");
+
+                for (let i = 0; i < users.length; i++) {
+                    const userUid = users[i].id.split("-")[1];
+                    await fetchAdminData(userUid); // Fetch data for the user
+                    if (i < users.length - 1) {
+                        console.log("Waiting for 15 seconds...");
+                        await new Promise(resolve => setTimeout(resolve, 15000)); // Wait for 15 seconds before processing the next user
                     }
-                })
-                .catch(error => console.error('Error:', error));
+                }
+            }
+
+            // Start processing users with a delay
+            processUsersWithDelay();
+
+            // Handle delete action
+            document.querySelectorAll(".delete-btn").forEach(button => {
+                button.addEventListener("click", function () {
+                    const id = this.dataset.id;
+                    fetch(`/users/delete/${id}`, {
+                        method: "DELETE",
+                        headers: { "Content-Type": "application/json" },
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            alert(data.message || "User deleted successfully.");
+                            location.reload();
+                        })
+                        .catch(error => {
+                            console.error("Error deleting user:", error);
+                            alert("Error deleting user.");
+                        });
+                });
             });
 
-            $(document).on("click", ".reset-password-btn", function() {
-                const id = $(this).data("id");
-                fetch("/users/reset_password/" + id, {
-                    method: "POST",
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => response.json().then(data => ({ status: response.status, body: data })))
-                .then(response => {
-                    if (response.status === 200) {
-                        alert(response.body.message);
-                    } else {
-                        alert(response.body.error || "Failed to reset password.");
-                    }
-                })
-                .catch(error => console.error('Error:', error));
+            // Handle reset password action
+            document.querySelectorAll(".reset-password-btn").forEach(button => {
+                button.addEventListener("click", function () {
+                    const id = this.dataset.id;
+                    fetch(`/users/reset_password/${id}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            alert(data.message || "Password reset successfully.");
+                        })
+                        .catch(error => {
+                            console.error("Error resetting password:", error);
+                            alert("Error resetting password.");
+                        });
+                });
             });
         });
     </script>
-    {% endif %}
-</div>
-{% endblock %}
-
-{% block background %}
-{% endblock %}
+    {% endblock %}
+    <!- This is turning off birds background from base.html -->
+    {% block background %}
+    {% endblock %}
