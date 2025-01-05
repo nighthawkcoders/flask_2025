@@ -1,12 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Management</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-</head>
-<body>
+{% extends "layouts/base.html" %}
+
+{% block body %}
+
     <div class="container mt-5">
         <h1>User Analytics</h1>
 
@@ -23,7 +18,6 @@
                     <th>Kasm Server Needed</th>
                     <th>Courses</th>
                     <th>Commits</th>
-                    <th>Issues</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -51,7 +45,6 @@
                         {% endfor %}
                     </td>
                     <td id="commits-{{ user.uid }}">Loading...</td>
-                    <td id="issues-{{ user.uid }}">Loading...</td>
                     <td>
                         <button class="btn btn-danger delete-btn" data-id="{{ user.id }}">Delete</button>
                         <button class="btn btn-warning reset-password-btn" data-id="{{ user.id }}">Reset Password</button>
@@ -71,9 +64,8 @@
             // Function to fetch commits and issues data from the admin endpoints
             async function fetchAdminData(userUid) {
                 const commitsElement = document.getElementById(`commits-${userUid}`);
-                const issuesElement = document.getElementById(`issues-${userUid}`);
 
-                if (!commitsElement || !issuesElement) {
+                if (!commitsElement) {
                     console.error(`Elements for User UID ${userUid} not found`);
                     return;
                 }
@@ -104,7 +96,6 @@
 
                     // Match the user UID to get specific data
                     commitsElement.innerText = commitsData.commits?.total_commit_contributions || "0";
-                    issuesElement.innerText = 0; // No issues response
                 } catch (error) {
                     console.error("Error:", error);
                 }
@@ -167,5 +158,7 @@
             });
         });
     </script>
-</body>
-</html>
+    {% endblock %}
+    <!- This is turning off birds background from base.html -->
+    {% block background %}
+    {% endblock %}
