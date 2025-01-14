@@ -64,7 +64,16 @@ class UserAPI:
             
     class _CRUD(Resource):  # Users API operation for Create, Read, Update, Delete 
         def post(self): # Create method
-            ''' Read data for json body '''
+            """
+            Create a new user.
+
+            Reads data from the JSON body of the request, validates the input, and creates a new user in the database.
+
+            Returns:
+                JSON response with the created user details or an error message.
+            """
+            
+            # Read data for json body
             body = request.get_json()
             
             ''' Avoid garbage in, error checking '''
@@ -79,26 +88,37 @@ class UserAPI:
             if uid is None or len(uid) < 2:
                 return {'message': f'User ID is missing, or is less than 2 characters'}, 400
           
-            # Accounts are desired to be GitHub accounts, create must be validated 
+            # check if uid is a GitHub account
             _, status = GitHubUser().get(uid)
             if status != 200:
                 return {'message': f'User ID {uid} not a valid GitHub account' }, 404
             
-            ''' #1: Setup minimal USER OBJECT '''
+            ''' User object creation '''
+            #1: Setup minimal User object using __init__ method
             user_obj = User(name=name, uid=uid)
             
-            ''' #2: Add user to database '''
+            #2: Save the User object to the database using custom create method
             user = user_obj.create(body) # pass the body elements to be saved in the database
             if not user: # failure returns error message
                 return {'message': f'Processed {name}, either a format error or User ID {uid} is duplicate'}, 400
             
+            # return response, the created user details as a JSON object
             return jsonify(user.read())
 
         @token_required()
         def get(self):
+            """
+            Retrieve all users.
+
+            Retrieves a list of all users in the database.
+
+            Returns:
+                JSON response with a list of user dictionaries.
+            """
             # retrieve the current user from the token_required authentication check  
             current_user = g.current_user
-            # current_user extracted from the token using token_required decorator
+            
+            """ User SQLAlchemy query returning list of all users """
             users = User.query.all() # extract all users from the database
              
             # prepare a json list of user dictionaries
@@ -111,24 +131,33 @@ class UserAPI:
                     user_data['access'] = ['ro'] # read-only access control 
                 json_ready.append(user_data)
             
-            # return response, a json list of user dictionaries
+            # return response, a list of user dictionaries in JSON format
             return jsonify(json_ready)
         
         @token_required()
         def put(self):
-            ''' Retrieve the current user from the token_required authentication check '''
+            """
+            Update user details.
+
+            Retrieves the current user from the token_required authentication check and updates the user details based on the JSON body of the request.
+
+            Returns:
+                JSON response with the updated user details or an error message.
+            """
+            
+            # Retrieve the current user from the token_required authentication check
             current_user = g.current_user
-            ''' Read data from the JSON body of the request '''
+            # Read data from the JSON body of the request
             body = request.get_json()
 
             ''' Admin-specific update handling '''
             if current_user.role == 'Admin':
                 uid = body.get('uid')
+                # Admin is updating themself
                 if uid is None or uid == current_user.uid:
-                    # Admin is updating themself
                     user = current_user 
-                else:
-                    # Admin is updating another user
+                else: # Admin is updating another user
+                    """ User SQLAlchemy query returning a single user """
                     user = User.query.filter_by(_uid=uid).first()
                     if user is None:
                         return {'message': f'User {uid} not found'}, 404
@@ -142,23 +171,38 @@ class UserAPI:
                 if status != 200:
                     return {'message': f'User ID {body.get("uid")} not a valid GitHub account' }, 404
             
-            ''' Update the user object with the new data ''' 
+            # Update the User object to the database using custom update method
             user.update(body)
             
-            ''' Return the updated user details as a JSON object '''
+            # return response, the updated user details as a JSON object
             return jsonify(user.read())
         
         @token_required("Admin")
-        def delete(self): # Delete Method
+        def delete(self):
+            """
+            Delete a user.
+
+            Deletes a user from the database based on the JSON body of the request. Only accessible by Admin users.
+
+            Returns:
+                JSON response with a success message or an error message.
+            """
             body = request.get_json()
             uid = body.get('uid')
+            
+            """ User SQLAlchemy query returning a single user """
             user = User.query.filter_by(_uid=uid).first()
+            
+            # bad request
             if user is None:
                 return {'message': f'User {uid} not found'}, 404
-            json = user.read()
-            user.delete() 
+           
+            # Read and then Delete the User object using custom methods
+            user_json = user.read()
+            user.delete()
+            
             # 204 is the status code for delete with no json response
-            return f"Deleted user: {json}", 204 # use 200 to test with Postman
+            return f"Deleted user: {user_json}", 204 # use 200 to test with Postman
          
     class _Section(Resource):  # Section API operation
         @token_required()
@@ -333,4 +377,5 @@ class UserAPI:
     api.add_resource(_CRUD, '/user')
     api.add_resource(_Section, '/user/section') 
     api.add_resource(_Security, '/authenticate')          
+              
     
