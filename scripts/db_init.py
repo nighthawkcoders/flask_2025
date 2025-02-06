@@ -55,8 +55,11 @@ def main():
             
             if tables:
                 print("Warning, you are about to lose all data in the database!")
-                print("Do you want to continue? (y/n)")
-                response = input()
+                if os.getenv('FORCE_YES') == 'true':
+                    response = 'y'
+                else:
+                    print("Do you want to continue? (y/n)")
+                    response = input()
                 if response.lower() != 'y':
                     print("Exiting without making changes.")
                     sys.exit(0)
