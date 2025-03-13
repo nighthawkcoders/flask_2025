@@ -23,7 +23,9 @@ def get_date_range(body):
         if today >= datetime(year, 6, 15) and today <= datetime(year, 11, 14):
             start_date = datetime(year, 6, 1)
             end_date = datetime(year, 11, 14)
-        elif today >= datetime(year, 11, 15) and today <= datetime(year + 1, 3, 14):
+        elif today >= datetime(year, 11, 15) or today <= datetime(year, 3, 14):  # Fix for year transition
+            if today.month < 6:  # Adjust year for early months (Jan–Mar)
+                year -= 1  
             start_date = datetime(year, 9, 1)
             end_date = datetime(year + 1, 3, 14)
         elif today >= datetime(year, 4, 15) and today <= datetime(year, 6, 14):
