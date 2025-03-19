@@ -22,24 +22,25 @@ def get_date_range(body):
         today = datetime.today()
         year = today.year
 
-        if datetime(year, 6, 15) <= today <= datetime(year, 11, 14):
+        if datetime(year, 6, 15) <= today <= datetime(year, 11, 14):  # Trimester 1
             start_date = datetime(year, 6, 1)
             end_date = datetime(year, 11, 14)
-        elif datetime(year, 11, 15) <= today or today <= datetime(year, 3, 14):  # Fix: Ensuring correct range
+        elif datetime(year, 11, 15) <= today or today <= datetime(year, 3, 31):  # Trimester 2 (extended to March 31)
             if today.month <= 3:  # If Jan–Mar, adjust to previous year
                 year -= 1  
             start_date = datetime(year, 9, 1)
-            end_date = datetime(year + 1, 3, 14)
-        elif datetime(year, 4, 15) <= today <= datetime(year, 6, 14):
+            end_date = datetime(year + 1, 3, 31)  # Now includes all of March
+        elif datetime(year, 4, 1) <= today <= datetime(year, 6, 14):  # Trimester 3 (fixed start)
             start_date = datetime(year, 4, 1)
             end_date = datetime(year, 6, 14)
         else:
-            raise ValueError('Date is out of the defined trimesters')
+            raise ValueError(f"Date {today.strftime('%Y-%m-%d')} is out of the defined trimesters")
 
         start_date = start_date.strftime('%Y-%m-%d')
         end_date = end_date.strftime('%Y-%m-%d')
 
     return start_date, end_date
+
 
 
 class GitHubUserAPI(Resource):
