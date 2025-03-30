@@ -181,7 +181,7 @@
                     await fetchAdminData(userUid); // Fetch data for the user
                     if (i < users.length - 1) {
                         console.log("Waiting for 15 seconds...");
-                        await new Promise(resolve => setTimeout(resolve, 15000)); // Wait for 15 seconds before processing the next user
+                        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 15 seconds before processing the next user
                     }
                 }
             }
