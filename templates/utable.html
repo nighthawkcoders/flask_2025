@@ -178,10 +178,17 @@
 
                 for (let i = 0; i < users.length; i++) {
                     const userUid = users[i].id.split("-")[1];
+                    
                     await fetchAdminData(userUid); // Fetch data for the user
-                    if (i < users.length - 1) {
-                        console.log("Waiting for 15 seconds...");
-                        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 15 seconds before processing the next user
+                
+                    if (i < users.length - 1) {  
+                        if ((i + 1) % 15 === 0) {  
+                            console.log(`Processed ${i + 1} users. Pausing for 5 seconds...`);
+                            await new Promise(resolve => setTimeout(resolve, 5000)); // 5-second delay every 15 users
+                        } else {
+                            console.log(`Waiting for 2 seconds...`);
+                            await new Promise(resolve => setTimeout(resolve, 1000)); // 1-second delay between users
+                        }
                     }
                 }
             }
