@@ -4,6 +4,7 @@
 
 <div class="container mt-5">
     <h1>User Management</h1>
+
     <table class="table table-striped" id="userTable">
         <thead>
             <tr>
@@ -15,15 +16,14 @@
                 <th>Profile Picture</th>
                 <th>Kasm Server Needed</th>
                 <th>Courses</th>
-                {% if current_user.role == 'Admin' %}
+                <th>Commits</th>
                 <th>Actions</th>
-                {% endif %}
             </tr>
         </thead>
         <tbody>
             {% for user in user_data %}
             {% if user.id == current_user.id or current_user.role == 'Admin' %}
-            <tr>
+            <tr id="user-{{ user.id }}">
                 <td>{{ user.id }}</td>
                 <td>{{ user.uid }}</td>
                 <td>{{ user.name }}</td>
@@ -31,9 +31,15 @@
                 <td>{{ user.role }}</td>
                 <td>
                     {% if user.pfp %}
-                    <img src="{{ url_for('uploaded_file', filename=user.uid + '/' + user.pfp) }}" alt="Profile Picture" class="img-thumbnail" style="width: 50px; height: 50px;">
+                    <img src="{{ url_for('uploaded_file', filename=user.uid + '/' + user.pfp) }}" 
+                         alt="Profile Picture" 
+                         class="img-thumbnail" 
+                         style="width: 50px; height: 50px;">
                     {% else %}
-                    <img src="{{ url_for('static', filename='assets/pythondb.png') }}" alt="Default Profile Picture" class="img-thumbnail" style="width: 50px; height: 50px;">
+                    <img src="{{ url_for('static', filename='assets/pythondb.png') }}" 
+                         alt="Default Profile Picture" 
+                         class="img-thumbnail" 
+                         style="width: 50px; height: 50px;">
                     {% endif %}
                 </td>
                 <td id="kasm-{{ user.id }}">{{ user.kasm_server_needed }}</td>
@@ -42,71 +48,130 @@
                     {{ section.abbreviation }}{% if not loop.last %}, {% endif %}
                     {% endfor %}
                 </td>
-                {% if current_user.role == 'Admin' %}
+                <td id="commits-{{ user.uid }}">Loading...</td>
                 <td>
+                    <button class="btn btn-primary edit-btn" data-id="{{ user.id }}">Edit</button>
+                    {% if current_user.role == 'Admin' %}
                     <button class="btn btn-danger delete-btn" data-id="{{ user.id }}">Delete</button>
                     <button class="btn btn-warning reset-password-btn" data-id="{{ user.id }}">Reset Password</button>
-                </td>                
-                {% endif %}
+                    {% endif %}
+                </td>
             </tr>
             {% endif %}
             {% endfor %}
         </tbody>
     </table>
-    {% if current_user.role == 'Admin' %}
-    <script>
-        // Ensure the DOM is fully loaded before running the script
-        $(document).ready(function() {
-            // Initialize the User Table using jQuery DataTables
-            $("#userTable").DataTable();
-    
-            // Event delegation for delete button
-            // Attach a click event listener to elements with class 'delete-btn'
-            $(document).on("click", ".delete-btn", function() {
-                var id = $(this).data("id");
-                fetch("/users/delete/" + id, {
+</div>
+
+<!-- jQuery, DataTables, and Bootstrap -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        // Initialize DataTables
+        const table =  $("#userTable").DataTable(); // repersents table
+
+        table.page.len(-1).draw();  // shows all users and commits
+        // Function to fetch commits
+        async function fetchAdminData(userUid) {
+            const commitsElement = $(`#commits-${userUid}`);
+
+            if (!commitsElement.length) return;
+
+            const today = new Date();
+            const startDate = new Date();
+            startDate.setDate(today.getDate() - 30);
+
+            const formattedStartDate = startDate.toISOString().split('T')[0];
+            const formattedEndDate = today.toISOString().split('T')[0];
+
+            try {
+                const response = await fetch(`/api/analytics/commits/${userUid}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ start_date: formattedStartDate, end_date: formattedEndDate })
+                });
+
+                if (!response.ok) throw new Error(`Error: ${response.statusText}`);
+
+                const data = await response.json();
+                commitsElement.text(data.commits?.total_commit_contributions || "0");
+
+            } catch (error) {
+                console.error("Error:", error);
+            }
+        }
+
+        // Batch processing with delay
+        async function processUsersWithDelay() {
+            const users = $("[id^='commits-']");
+            console.log(`Total users found: ${users.length}`);
+
+
+            for (let i = 0; i < users.length; i++) {
+                const userUid = users[i].id.split("-")[1];
+
+                await fetchAdminData(userUid);
+
+                if ((i + 1) % 15 === 0) {
+                    console.log(`Pausing for 5 seconds...`);
+                    await new Promise(resolve => setTimeout(resolve, 4000)); // tinker this however depending on rate limiting
+                } else {
+                    console.log(`Waiting for 2 seconds...`);
+                    await new Promise(resolve => setTimeout(resolve, 100));  // tinker this however depending on rate limiting
+                }
+            }
+
+            table.page.len(10).draw();  
+        }
+
+        // Start processing users with a delay yep
+        processUsersWithDelay();
+
+        // Handle delete action
+        document.querySelectorAll(".delete-btn").forEach(button => {
+            button.addEventListener("click", function () {
+                const id = this.dataset.id;
+                fetch(`/users/delete/${id}`, {
                     method: "DELETE",
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
+                    headers: { "Content-Type": "application/json" },
                 })
-                .then(response => response.json().then(data => ({ status: response.status, body: data })))
-                .then(response => {
-                    if (response.status === 200) {
-                        alert(response.body.message);
+                    .then(response => response.json())
+                    .then(data => {
+                        alert(data.message || "User deleted successfully.");
                         location.reload();
-                    } else {
-                        alert(response.body.error || "Failed to delete user.");
-                    }
-                })
-                .catch(error => console.error('Error:', error));
-            });
-    
-            // Event delegation for reset password button
-            // Attach a click event listener to elements with class 'reset-password-btn'
-            $(document).on("click", ".reset-password-btn", function() {
-                var id = $(this).data("id");
-                fetch("/users/reset_password/" + id, {
-                    method: "POST",
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => response.json().then(data => ({ status: response.status, body: data })))
-                .then(response => {
-                    if (response.status === 200) {
-                        alert(response.body.message);
-                    } else {
-                        alert(response.body.error || "Failed to reset password.");
-                    }
-                })
-                .catch(error => console.error('Error:', error));
+                    })
+                    .catch(error => {
+                        console.error("Error deleting user:", error);
+                        alert("Error deleting user.");
+                    });
             });
         });
-    </script>
-   {% endif %}
-</div>
+
+        // Handle reset password action
+        document.querySelectorAll(".reset-password-btn").forEach(button => {
+            button.addEventListener("click", function () {
+                const id = this.dataset.id;
+                fetch(`/users/reset_password/${id}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        alert(data.message || "Password reset successfully.");
+                    })
+                    .catch(error => {
+                        console.error("Error resetting password:", error);
+                        alert("Error resetting password.");
+                    });
+            });
+        });
+    });
+</script>
+
 {% endblock %}
-<!- This is turning off birds background from base.html -->
+
 {% block background %}
 {% endblock %}
