@@ -97,11 +97,7 @@ def index():
     print("Home:", current_user)
     return render_template("index.html")
 
-@app.route('/users/table')
-@login_required
-def utable():
-    users = User.query.all()
-    return render_template("utable.html", user_data=users)
+
 
 @app.route('/users/table2')
 @login_required
