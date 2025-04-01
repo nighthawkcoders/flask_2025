@@ -114,10 +114,10 @@
 
                 if ((i + 1) % 15 === 0) {
                     console.log(`Pausing for 5 seconds...`);
-                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    await new Promise(resolve => setTimeout(resolve, 4000));
                 } else {
                     console.log(`Waiting for 2 seconds...`);
-                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    await new Promise(resolve => setTimeout(resolve, 500));
                 }
             }
         }
