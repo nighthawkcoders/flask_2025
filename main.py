@@ -21,6 +21,7 @@ from api.stock import stock_api
 from api.analytics import analytics_api
 # database Initialization functions
 from model.user import User, initUsers
+from model.user import Section;
 from model.github import GitHubUser
 from api.analytics import get_date_range
 # server only Views
@@ -104,6 +105,12 @@ def index():
 def u2table():
     users = User.query.all()
     return render_template("u2table.html", user_data=users)
+
+@app.route('/sections/')
+@login_required
+def sections():
+    sections = Section.query.all()
+    return render_template("sections.html", sections=sections)
 
 # Helper function to extract uploads for a user (ie PFP image)
 @app.route('/uploads/<path:filename>')
